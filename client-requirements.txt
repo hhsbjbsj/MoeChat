@@ -1,0 +1,7 @@
+sounddevice
+soundfile
+pysilero
+numpy
+scipy
+pygame
+requests

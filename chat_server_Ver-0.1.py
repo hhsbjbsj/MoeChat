@@ -2,7 +2,7 @@ import yaml
 
 # 读取配置文件
 config_data = {}
-with open("config.yaml", "r") as file:
+with open("config.yaml", "r", encoding="utf-8") as file:
     config_data = yaml.safe_load(file)
 
 llm_api = config_data["LLM"]["api"]

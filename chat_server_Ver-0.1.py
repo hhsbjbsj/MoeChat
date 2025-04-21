@@ -227,7 +227,7 @@ def ttts(res_list: list, audio_list: list):
                 break
             audio_list.append(to_tts(res_list[i]))
             i += 1
-        time.sleep(0.01)
+        time.sleep(0.05)
 
 # asr功能
 def asr(audio_data: bytes):
@@ -285,7 +285,7 @@ async def text_llm_tts(params: tts_data, start_time):
                     stat = False
                 yield f"data: {json.dumps(data)}\n\n"
                 i += 1
-            await asyncio.sleep(0.01)                
+            await asyncio.sleep(0.05)                
 
 @app.post("/api/chat")
 async def tts_api(params: tts_data):

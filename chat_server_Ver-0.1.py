@@ -1,5 +1,6 @@
 import yaml
 
+# 读取配置文件
 config_data = {}
 with open("config.yaml", "r") as file:
     config_data = yaml.safe_load(file)
@@ -14,30 +15,23 @@ headers = {
 
 import os
 import sys
-import traceback
 import requests
 import json
 import time
 import asyncio
-import re
-from threading import Thread, Lock
-from typing import Generator
+from threading import Thread
 
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 sys.path.append("%s/GPT_SoVITS" % (now_dir))
 
-# import datetime
-# import winsound
 import argparse
-# import subprocess
 import base64
-# import signal
 import numpy as np
 import soundfile as sf
-from fastapi import FastAPI, Request, HTTPException, Response
+from fastapi import FastAPI
 from fastapi.responses import StreamingResponse, JSONResponse
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI
 import uvicorn
 from io import BytesIO
 from tools.i18n.i18n import I18nAuto
@@ -87,18 +81,6 @@ def pack_wav(io_buffer:BytesIO, data:np.ndarray, rate:int):
     sf.write(io_buffer, data, rate, format='wav')
     return io_buffer
 
-# def pack_audio(io_buffer:BytesIO, data:np.ndarray, rate:int, media_type:str):
-#     if media_type == "ogg":
-#         io_buffer = pack_ogg(io_buffer, data, rate)
-#     elif media_type == "aac":
-#         io_buffer = pack_aac(io_buffer, data, rate)
-#     elif media_type == "wav":
-#         io_buffer = pack_wav(io_buffer, data, rate)
-#     else:
-#         io_buffer = pack_raw(io_buffer, data, rate)
-#     io_buffer.seek(0)
-#     return io_buffer
-
 def tts(datas):
     try:
         tts_generator=tts_pipeline.run(datas)
@@ -109,19 +91,11 @@ def tts(datas):
         return audio_data
     except:
         return
-    
-
-# 询问LLM模型
+# 提交到大模型
 def to_llm(msg: list, res_msg_list: list, full_msg: list):
     global model1
     global llm_api
     global headers
-    # global pro
-    # global state
-    # 获取LLM模型返回的文本
-    # model1 = "repository@q6"
-    # model1 = "publisher/repository/tifa-deepsexv2-7b-cot-0317-f16.gguf"
-    # model1 = "publisher/repository/tifa-deepsexv2-7b-nocot-0325-f16.gguf"
     data = {
         "model": model1 ,
         "messages": msg,
@@ -129,32 +103,18 @@ def to_llm(msg: list, res_msg_list: list, full_msg: list):
         # "max_tokens": -1,
         "stream": True
     }
-    # print(data)
     t_t = time.time()
     try:
-        # print(2)
-        # 发送POST请求
         response = requests.post(url = llm_api, json=data, headers=headers,stream=True)
-        # print(3)
     except:
-        # print(1)
         print("无法链接到LLM服务器")
         return JSONResponse(status_code=400, content={"message": "无法链接到LLM服务器"})
     
     # 信息处理
-    biao_dian = ["，", "。", "？", "！", ",", ".", "...", "?", "!", "、", "~", "~", "…"]
-    biao_dian = ["，", "。", "？", "！", ",", ".", "...", "?", "!", "…"]
+    # biao_dian = ["，", "。", "？", "！", ",", ".", "...", "?", "!", "、", "~", "~", "…"]
+    # biao_dian = ["，", "。", "？", "！", ",", ".", "...", "?", "!", "…"]
     biao_dian_2 = ["…", "~", "~", "。", "？", "！", "?", "!"]
     biao_dian_3 = ["…", "~", "~", "。", "？", "！", "?", "!",  ",",  "，"]
-
-    def tt(mmsg: str):
-        i = mmsg.find("\"")
-        if i == -1:
-            return False
-        ii = mmsg.find("\"", i+1)
-        if ii == -1:
-            return False
-        return [i, ii]
 
     res_msg = ""
     tmp_msg = ""
@@ -166,24 +126,20 @@ def to_llm(msg: list, res_msg_list: list, full_msg: list):
     j = True
     for line in response.iter_lines():
         if line:
-            # res_msg += str(json.loads(line)['message']['content']).replace("\n", "")
             try:
                 if j:
                     print(f"\n[大模型延迟]{time.time() - t_t}")
                     j = False
-                # res_data = json.loads(line.decode("UTF-8"))
-                # tmp_msg += res_data["message"]["content"]
                 res_msg += json.loads(line.decode("utf-8").replace("data:", ""))["choices"][0]["delta"]["content"]
                 tmp_msg += json.loads(line.decode("utf-8").replace("data:", ""))["choices"][0]["delta"]["content"]
                 res_msg = res_msg.replace("...", "…")
                 tmp_msg = tmp_msg.replace("...", "…")
-                # tmp_msg = re.sub(r'\(.*?\)', '', tmp_msg)
-                # tmp_msg = re.sub(r'（.*?）', '', tmp_msg)
             except:
                 err = line.decode("utf-8")
                 print(f"[错误]：{err}")
                 continue
 
+            # 提取""内的内容
             for m in range(len(tmp_msg)):
                 if tmp_msg[m] == "\"":
                     if tt3 == 0:
@@ -220,19 +176,10 @@ def to_llm(msg: list, res_msg_list: list, full_msg: list):
             
             if len(ttmp_msg) != 0:
                 ttmp_msg = ttmp_msg[start:]
-            # if len(ttmp_msg) != 0:
-            #     if ttmp_msg[-1] in biao_dian_3:
-            #         ttmp_msg = ""
-            #     else:
-            #         ttmp_msg = ttmp_msg[start:]
     if len(ttmp_msg) > 1:
         res_msg_list.append(ttmp_msg)
-
-
-
-
-    # if tmp_msg != "":
-    #     res_msg.append(tmp_msg)
+    
+    # 返回完整上下文 
     full_msg.append(res_msg)
     print(full_msg)
     print(res_msg_list)
@@ -269,12 +216,6 @@ def to_tts(msg: str):
     byte_data = tts(datas)
     audio_b64 = base64.urlsafe_b64encode(byte_data).decode("utf-8")
     return audio_b64
-    # with io.BytesIO(byte_data) as io_buffer:
-    #     with wave.open(io_buffer, "r") as f:
-    #         res_audio = f.readframes(f.getnframes())
-    #         base64_encoded = base64.b64encode(res_audio)
-    #         return base64_encoded.decode('utf-8')
-    # res_list.append({"file": res_audio, "message": msg})
 
 def ttts(res_list: list, audio_list: list):
     i = 0
@@ -308,6 +249,7 @@ def asr(audio_data: bytes):
     print()
     print(f"[{time.time() - tt}]{text}\n\n")
     return text
+
 
 # -----------------------------------API接口部分----------------------------------------------------------
 
@@ -345,18 +287,6 @@ async def text_llm_tts(params: tts_data, start_time):
                 i += 1
             await asyncio.sleep(0.01)                
 
-    # while state[0] == 1:
-    #     if iii in res_list:
-    #         yield str(res_list[iii]["message"]).encode("utf-8")
-    #         # print(f"\n\n\n\n{res_list[iii]}\n\n\n\n")
-    #         iii += 1
-    #     await asyncio.sleep(0.01)
-    # if len(res_list) > iii + 1:
-    #     yield str(res_list[iii+1]["message"]).encode("utf-8")
-        # print(f"\n\n\n\n{res_list[iii+1]}\n\n\n\n")
-    # print(res_list)
-    
-
 @app.post("/api/chat")
 async def tts_api(params: tts_data):
     return StreamingResponse(text_llm_tts(params, time.time()), media_type="text/event-stream")
@@ -369,29 +299,6 @@ async def asr_api(params: asr_data):
     audio_data = base64.urlsafe_b64decode(params.data.encode("utf-8"))
     text = asr(audio_data)
     return text
-
-
-# @app.get("/set_gpt_weights")
-# async def set_gpt_weights(weights_path: str = None):
-#     try:
-#         if weights_path in ["", None]:
-#             return JSONResponse(status_code=400, content={"message": "gpt weight path is required"})
-#         tts_pipeline.init_t2s_weights(weights_path)
-#     except Exception as e:
-#         return JSONResponse(status_code=400, content={"message": f"change gpt weight failed", "Exception": str(e)})
-
-#     return JSONResponse(status_code=200, content={"message": "success"})
-
-# @app.get("/set_sovits_weights")
-# async def set_sovits_weights(weights_path: str = None):
-#     try:
-#         if weights_path in ["", None]:
-#             return JSONResponse(status_code=400, content={"message": "sovits weight path is required"})
-#         tts_pipeline.init_vits_weights(weights_path)
-#     except Exception as e:
-#         return JSONResponse(status_code=400, content={"message": f"change sovits weight failed", "Exception": str(e)})
-#     return JSONResponse(status_code=200, content={"message": "success"})        
-
 
 # -----------------------------------API接口部分----------------------------------------------------------
 

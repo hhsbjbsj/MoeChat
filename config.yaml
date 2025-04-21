@@ -1,0 +1,14 @@
+LLM:
+  api: ""
+  key: ""
+  model: ""
+GSV:
+  text_lang: "zh"
+  GPT_weight: ""
+  SoVITS_weight: ""
+  ref_audio_path: ""
+  prompt_text: ""
+  prompt_lang: "zh"
+  aux_ref_audio_paths:
+    - 
+  seed: -1

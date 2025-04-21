@@ -4,7 +4,7 @@
 Linux环境下首Token延迟基本能做到1.5s以内。Windows环境下延迟在2.1s左右
 ### 测试平台
 服务端
-- OS: Manjaro
+- OS：Manjaro
 - CPU：R9 5950X
 - GPU：RTX 3080ti
 

@@ -307,8 +307,10 @@ if __name__ == "__main__":
     # global config_data
     t2s_weights = config_data["GSV"]["GPT_weight"]
     vits_weights =  config_data["GSV"]["SoVITS_weight"]
-    tts_pipeline.init_t2s_weights(t2s_weights)
-    tts_pipeline.init_vits_weights(vits_weights)
+    if len(t2s_weights) != 0:
+        tts_pipeline.init_t2s_weights(t2s_weights)
+    if len(vits_weights) != 0:
+        tts_pipeline.init_vits_weights(vits_weights)
 
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)

@@ -4,7 +4,8 @@
 首Token延迟基本能做到1.5s以内。
 ### 测试平台
 服务端
-- CPU：R9 5950x
+- OS: Manjaro
+- CPU：R9 5950X
 - GPU：RTX 3080ti
 
 客户端
@@ -43,4 +44,18 @@ GSV:
   aux_ref_audio_paths:  # 多参考音频
     -                # 多参考音频文件路径
   seed: -1           # 种子
+```
+
+### 简易客户端使用方法
+#### Windows
+测试使用python 3.10
+
+首先修改client.py文件asr_api、chat_api的ip地址。
+```bash
+# 创建python虚拟环境
+python -m venv pp
+.\pp\Scripts\pip.exe install -r client-requirements.txt
+
+# 运行
+.\pp\Scripts\python.exe client.py
 ```

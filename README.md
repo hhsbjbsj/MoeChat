@@ -47,7 +47,7 @@ GSV:
 ```
 
 ### 简易客户端使用方法
-## Windows
+### Windows
 测试使用python 3.10
 首先修改client.py文件asr_api、chat_api的ip地址。
 ```bash

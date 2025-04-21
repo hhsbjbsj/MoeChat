@@ -12,7 +12,7 @@ import base64
 import pygame
 import json
 
-asr_api = "http://192.168.1.172:8002/api/asr"
+asr_api = "http://192.168.1.172:8001/api/asr"
 chat_api = "http://192.168.1.172:8001/api/chat"
 status = True
 
@@ -51,7 +51,7 @@ def to_llm_and_tts(msg: str):
     tt_t = time.time()
     #print(data)
     try:
-        res = requests.post(chat_api, json=data, stream=True, timeout=10)
+        res = requests.post(chat_api, json=data, stream=True)
     except:
         print("无法连接大模型服务器...")
         return
@@ -72,7 +72,7 @@ def to_llm_and_tts(msg: str):
                 break
             audio_b64 = rec_data["file"]
             tmp = audio_b64.encode("utf-8")
-            tmp = base64.b64decode(tmp)
+            tmp = base64.urlsafe_b64decode(tmp)
             if tt:
                 print(f"\n首token耗时{time.time() - tt_t}")
                 print("Ai: ")

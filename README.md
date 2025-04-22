@@ -75,17 +75,30 @@ python -m venv pp
 # 服务端直接返回识别结果文本
 ```
 
-
 #### 对话接口
 ```python
+# 对话接口为sse流式接口，服务端会将大模型的回答切片并生成对应的语音数据，一段一段返回客户端
 # 请求数据格式为json
 # 将大模型上下文数据放进msg字段，类型为字符串数组
-# 例子
+# 请求例子
 {
   "msg": [
     {"role": "user", "content": "你好呀！"},
     {"role": "assistant", "content": "你好呀！有什么能帮到你的吗？"},
     {"role": "user", "content": "1+1等于多少呢？"},
   ]
+}
+
+# 服务端响应例子
+{
+  "file": str     # urlsafe的base64字符串音频文件
+  "message": str  # 音频数据对应的文本
+  "done": False   # bool类型，用于判断是否为最后一个数据包
+}
+# 最后一个数据包服务端会将大模型完整的回答文本放进message字段返回客户端
+{
+  "file": str
+  "message": str  # 字符串类型，大模型完整回答文本，用于拼接上下文
+  "done": True    # bool类型，用于判断是否为最后一个数据包
 }
 ```

@@ -75,6 +75,7 @@ python -m venv pp
 # 服务端直接返回识别结果文本
 ```
 
+
 #### 对话接口
 ```python
 # 请求数据格式为json

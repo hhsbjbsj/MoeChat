@@ -60,3 +60,31 @@ python -m venv pp
 # 运行
 .\pp\Scripts\python.exe client.py
 ```
+
+## 接口说明
+接口全部使用POST请求。
+
+#### ASR语音识别接口
+```python
+# url为/api/asr
+# 请求数据格式为json
+# 将音频数据编码成urlsafe的base64字符串，放进请求体data字段中
+{
+  "data": str # base64音频数据
+}
+# 服务端直接返回识别结果文本
+```
+
+#### 对话接口
+```python
+# 请求数据格式为json
+# 将大模型上下文数据放进msg字段，类型为字符串数组
+# 例子
+{
+  "msg": [
+    {"role": "user", "content": "你好呀！"},
+    {"role": "assistant", "content": "你好呀！有什么能帮到你的吗？"},
+    {"role": "user", "content": "1+1等于多少呢？"},
+  ]
+}
+```

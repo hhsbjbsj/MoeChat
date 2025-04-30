@@ -34,7 +34,7 @@ from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi import FastAPI
 import uvicorn
 from io import BytesIO
-from tools.i18n.i18n import I18nAuto
+# from tools.i18n.i18n import I18nAuto
 from GPT_SoVITS.TTS_infer_pack.TTS import TTS, TTS_Config
 from GPT_SoVITS.TTS_infer_pack.text_segmentation_method import get_method_names as get_cut_method_names
 from fastapi.responses import StreamingResponse
@@ -43,7 +43,7 @@ from funasr import AutoModel
 from funasr.utils.postprocess_utils import rich_transcription_postprocess
 
 # print(sys.path)
-i18n = I18nAuto()
+# i18n = I18nAuto()
 cut_method_names = get_cut_method_names()
 
 parser = argparse.ArgumentParser(description="GPT-SoVITS api")

@@ -1,14 +1,16 @@
 LLM:
-  api: ""
-  key: ""
-  model: ""
+  api: 
+  key: 
+  model: 
 GSV:
-  text_lang: "zh"
-  GPT_weight: ""
-  SoVITS_weight: ""
-  ref_audio_path: ""
-  prompt_text: ""
-  prompt_lang: "zh"
+  text_lang: 
+  GPT_weight: 
+  SoVITS_weight: 
+  ref_audio_path: 
+  prompt_text: 
+  prompt_lang: 
   aux_ref_audio_paths:
     - 
   seed: -1
+  top_k: 15
+  batch_size: 1

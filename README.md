@@ -80,7 +80,7 @@ python -m venv pp
 
 ### 在客户端上修改提示词的方法
 ```bash
-# 打开client_cli.py文件，GUI简易客户端打开client-gui\src\utils.py文件
+# 打开client_cli.py文件，GUI简易客户端打开client-gui\src\utils.py文件，修改下面内容
 # 修改前
 # 用于存储上下文内容
 data = {

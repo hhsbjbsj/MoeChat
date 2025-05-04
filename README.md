@@ -1,6 +1,6 @@
 # 基于GPT-SoVITS的语音交互系统
 ## 简介
-一个非常基础的语音交互系统，使用GPT-SoVITS作为TTS模块，模型版本为V2。集成ASR接口，使用funasr作为语音识别模块基础。支持openai规范的大模型接口。
+一个非常基础的语音交互系统，使用GPT-SoVITS作为TTS模块。集成ASR接口，使用funasr作为语音识别模块基础。支持openai规范的大模型接口。
 Linux环境下首Token延迟基本能做到1.5s以内。Windows环境下延迟在2.1s左右
 ### 测试平台
 服务端

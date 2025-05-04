@@ -15,6 +15,10 @@ Linux环境下首Token延迟基本能做到1.5s以内。Windows环境下延迟�
 ![](screen/img.png)
 ## 整合包使用说明
 百度网盘链接: https://pan.baidu.com/s/1mf6hHJt8hVW3G2Yp2gC3Sw?pwd=2333 提取码: 2333
+### 注意！重要的事情说三遍
+### 服务端只会对英文""符号包裹的文字进行语音合成，使用前请修改大模型的提示词！
+### 服务端只会对英文""符号包裹的文字进行语音合成，使用前请修改大模型的提示词！
+### 服务端只会对英文""符号包裹的文字进行语音合成，使用前请修改大模型的提示词！
 ### Windows
 ```bash
 runtime\python.exe chat_server.py

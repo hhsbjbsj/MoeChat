@@ -268,10 +268,11 @@ def ttts(res_list: list, audio_list: list):
 def asr(audio_data: bytes):
     # global asr_model
     tt = time.time()
-    with open(f"./tmp/{tt}.wav", "wb") as file:
-        file.write(audio_data)
+    # with open(f"./tmp/{tt}.wav", "wb") as file:
+    #     file.write(audio_data)
+    audio_data = BytesIO(audio_data)
     res = asr_model.generate(
-        input=f"./tmp/{tt}.wav",
+        input=audio_data,
         # input=f"{model.model_path}/example/zh.mp3",
         cache={},
         language="zh", # "zh", "en", "yue", "ja", "ko", "nospeech"

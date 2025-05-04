@@ -16,9 +16,9 @@ Linux环境下首Token延迟基本能做到1.5s以内。Windows环境下延迟�
 ## 整合包使用说明
 百度网盘链接: https://pan.baidu.com/s/1mf6hHJt8hVW3G2Yp2gC3Sw?pwd=2333 提取码: 2333
 ### 注意！重要的事情说三遍
-### 服务端只会对英文""符号包裹的文字进行语音合成，使用前请修改大模型的提示词！
-### 服务端只会对英文""符号包裹的文字进行语音合成，使用前请修改大模型的提示词！
-### 服务端只会对英文""符号包裹的文字进行语音合成，使用前请修改大模型的提示词！
+### 服务端只会对英文""符号包裹的文本进行语音合成，使用前请修改大模型的提示词！
+### 服务端只会对英文""符号包裹的文本进行语音合成，使用前请修改大模型的提示词！
+### 服务端只会对英文""符号包裹的文本进行语音合成，使用前请修改大模型的提示词！
 ### Windows
 ```bash
 runtime\python.exe chat_server.py
@@ -65,6 +65,35 @@ python -m venv pp
 
 # 运行
 .\pp\Scripts\python.exe client.py
+```
+
+### 带简单GUI的客户端
+```bash
+# 创建python虚拟环境
+python -m venv pp
+.\pp\Scripts\pip.exe install -r client-requirements.txt
+.\pp\Scripts\pip.exe install flet[all]
+
+# 运行
+.\pp\Scripts\python.exe client-gui\src\client_gui.py
+```
+
+#### 在客户端上修改提示词的方法
+```bash
+# 打开client_cli.py文件，GUI简易客户端打开client-gui\src\utils.py文件
+# 修改前
+# 用于存储上下文内容
+data = {
+    "msg": []
+}
+
+#修改后
+# 用于存储上下文内容
+data = {
+    "msg": [
+        {"role":"system", "content": ```填入你的提示词```}
+    ]
+}
 ```
 
 ## 接口说明

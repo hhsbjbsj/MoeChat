@@ -32,9 +32,9 @@ python chat_server.py
 整合包配置文件为config.yaml
 ```yaml
 LLM:
-  api: ""    # 大模型API
-  key: ""    # 大模型API_Key
-  model: ""  # 模型名称
+  api:                   # 大模型API
+  key:                   # 大模型API_Key
+  model:                 # 模型名称
 GSV:
   text_lang: zh          # 合成文本的语种
   GPT_weight:            # GPT_weight模型路径

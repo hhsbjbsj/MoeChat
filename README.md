@@ -26,7 +26,7 @@ pip install -r extra-req.txt
 pip install -r requirements.txt
 
 # 运行
-python chat_server_Ver-0.1.py
+python chat_server.py
 ```
 ### 配置说明
 整合包配置文件为config.yaml
@@ -36,15 +36,17 @@ LLM:
   key: ""    # 大模型API_Key
   model: ""  # 模型名称
 GSV:
-  text_lang: "zh"    # 合成文本的语种
-  GPT_weight: ""     # GPT_weight模型路径
-  SoVITS_weight: ""  # SoVITS_weight模型路径
-  ref_audio_path: "" # 主要参考音频路径
-  prompt_text: ""    # 参考音频文本
-  prompt_lang: "zh"  # 参考音频语种
-  aux_ref_audio_paths:  # 多参考音频
-    -                # 多参考音频文件路径
-  seed: -1           # 种子
+  text_lang: zh          # 合成文本的语种
+  GPT_weight:            # GPT_weight模型路径
+  SoVITS_weight:         # SoVITS_weight模型路径
+  ref_audio_path:        # 主要参考音频路径
+  prompt_text:           # 参考音频文本
+  prompt_lang: zh        # 参考音频语种
+  aux_ref_audio_paths:   # 多参考音频
+    -                    # 多参考音频文件路径
+  seed: -1               # 种子
+  top_k: 15              # 情感表现程度，越高情感越丰富，也可能越奇怪
+  batch_size: 1
 ```
 
 ### 简易客户端使用方法

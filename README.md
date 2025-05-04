@@ -78,7 +78,7 @@ python -m venv pp
 .\pp\Scripts\python.exe client-gui\src\client_gui.py
 ```
 
-#### 在客户端上修改提示词的方法
+### 在客户端上修改提示词的方法
 ```bash
 # 打开client_cli.py文件，GUI简易客户端打开client-gui\src\utils.py文件
 # 修改前

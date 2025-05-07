@@ -1,3 +1,8 @@
+Core:
+  sv: 
+    is_up: true
+    master_audio: test.wav
+    thr:
 LLM:
   api: 
   key: 

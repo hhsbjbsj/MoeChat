@@ -1,4 +1,4 @@
-# Versdion 0.1.5
+# Versdion 0.1.7
 
 import yaml
 
@@ -52,8 +52,11 @@ from GPT_SoVITS.TTS_infer_pack.TTS import TTS, TTS_Config
 from GPT_SoVITS.TTS_infer_pack.text_segmentation_method import get_method_names as get_cut_method_names
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+
 from funasr import AutoModel
 from funasr.utils.postprocess_utils import rich_transcription_postprocess
+from utilss.sv import SV
+import torch
 
 # print(sys.path)
 # i18n = I18nAuto()
@@ -74,6 +77,24 @@ if config_path in [None, ""]:
     config_path = "GPT-SoVITS/configs/tts_infer.yaml"
 
 tts_config = TTS_Config(config_path)
+t2s_weights = config_data["GSV"]["GPT_weight"]
+vits_weights =  config_data["GSV"]["SoVITS_weight"]
+if t2s_weights not in [None, ""]:
+    tts_config.t2s_weights_path = t2s_weights
+else:
+    print("[提示]：未设置GPT模型。")
+if vits_weights not in [None, ""]:
+    tts_config.vits_weights_path = vits_weights
+else:
+    print("[提示]：未设置SoVITS模型。")
+if torch.cuda.is_available():
+    tts_config.device = "cuda"
+    print("CUDA可用")
+else:
+    tts_config.device = "cpu"
+    print("CUDA不可用")
+tts_config.update_configs()
+
 print(tts_config)
 tts_pipeline = TTS(tts_config)
 
@@ -87,6 +108,11 @@ asr_model = AutoModel(
     # vad_kwargs={"max_single_segment_time": 30000},
     device="cuda:0",
 )
+
+sv_pipeline = ""
+if config_data["Core"]["sv"]["is_up"]:
+    sv_pipeline = SV(config_data["Core"]["sv"])
+    is_sv = True
 # vad_model = AutoModel(model="fsmn-vad", disable_update=True)
 
 
@@ -266,8 +292,14 @@ def ttts(res_list: list, audio_list: list):
 
 # asr功能
 def asr(audio_data: bytes):
-    # global asr_model
+    global asr_model
+    global is_sv
+    global sv_pipeline
+
     tt = time.time()
+    if is_sv:
+        if not sv_pipeline.check_speaker(audio_data):
+            return "None"
     # with open(f"./tmp/{tt}.wav", "wb") as file:
     #     file.write(audio_data)
     audio_data = BytesIO(audio_data)

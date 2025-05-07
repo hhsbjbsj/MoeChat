@@ -1,0 +1,7 @@
+addict
+datasets==2.18.0
+simplejson
+sortedcontainers
+modelscope==1.24.1
+funasr==1.2.6
+numpy==1.25

@@ -36,6 +36,11 @@ python chat_server.py
 ### 配置说明
 整合包配置文件为config.yaml
 ```yaml
+Core:
+  sv:                    # 声纹配置  
+    is_up: true          # 是否启用声纹识别
+    master_audio:        # 音频路径
+    thr:                 # 不知道有什么用暂时留空
 LLM:
   api:                   # 大模型API
   key:                   # 大模型API_Key

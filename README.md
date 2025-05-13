@@ -72,14 +72,7 @@ extra_ref_audio:         # 使用情绪标签选择参考音频，例如 [普通
 ```
 
 ### 简易客户端使用方法
-#### Windows
-测试使用python 3.10
-首先修改client.py文件asr_api、chat_api的ip地址。
-##### 带简单GUI的客户端
-```bash
-# 运行
-.\pp\Scripts\python.exe client-gui\src\client_gui.py
-```
+
 #### Windows
 测试使用python 3.10
 首先修改client.py文件asr_api、chat_api的ip地址。

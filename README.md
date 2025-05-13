@@ -26,9 +26,16 @@ runtime\python.exe chat_server.py
 ```
 ### Linux
 ```bash
+# 创建虚拟环境
+python -m venv pp
+
+# 进入虚拟环境
+source pp/bin/activate
+
 # 安装依赖
 pip install -r extra-req.txt
 pip install -r requirements.txt
+pip install -r extra-req2.txt
 
 # 运行
 python chat_server.py
@@ -67,26 +74,34 @@ extra_ref_audio:         # 使用情绪标签选择参考音频，例如 [普通
 ### 简易客户端使用方法
 #### Windows
 测试使用python 3.10
-
 首先修改client.py文件asr_api、chat_api的ip地址。
+##### 带简单GUI的客户端
 ```bash
-# 创建python虚拟环境
-python -m venv pp
-.\pp\Scripts\pip.exe install -r client-requirements.txt
-
-# 运行
-.\pp\Scripts\python.exe client.py
-```
-
-### 带简单GUI的客户端
-```bash
-# 创建python虚拟环境
-python -m venv pp
-.\pp\Scripts\pip.exe install -r client-requirements.txt
-.\pp\Scripts\pip.exe install flet[all]
-
 # 运行
 .\pp\Scripts\python.exe client-gui\src\client_gui.py
+```
+#### Windows
+测试使用python 3.10
+首先修改client.py文件asr_api、chat_api的ip地址。
+##### 带简单GUI的客户端
+```bash
+# 运行
+.\pp\Scripts\python.exe client-gui\src\client_gui.py
+```
+
+#### Linux
+```bash
+# 创建虚拟环境
+python -m venv pp
+
+# 进入虚拟环境
+source pp/bin/activate
+
+# 安装依赖
+pip install -r client-requirements.txt
+
+# 启动
+python client-gui\src\client_gui.py
 ```
 
 ### 在客户端上修改提示词的方法

@@ -1,21 +1,33 @@
 Core:
-  sv: 
+  sv:
     is_up: true
-    master_audio: test.wav
-    thr:
+
+    master_audio: test.wav    # 包含你声音的wav音频文件，建议3s-5s左右。
+    thr:                      # 阈值，越小越敏感，建议0.5-0.8之间，实测好像不是很有用？
+  # wakeword:                 # 唤醒词相关，暂时不支持
+  #   is_up: false
+  #   word: 爱丽丝             #唤醒词
+  #   sleep_time: 1           #休眠时间，休眠后需要用带有唤醒词的语句唤醒，单位分钟，0表示永远需要唤醒词
 LLM:
   api: 
   key: 
   model: 
+  extra_config:               # 大模型API额外参数，如：temperature: 0.7，温度参数
+    temperature: 0.7
 GSV:
-  text_lang: 
+  text_lang: zh
   GPT_weight: 
   SoVITS_weight: 
   ref_audio_path: 
   prompt_text: 
-  prompt_lang: 
-  aux_ref_audio_paths:
+  prompt_lang: zh
+  aux_ref_audio_paths:        # 多参考音频 v2模型有效
     - 
   seed: -1
   top_k: 15
   batch_size: 1
+extra_ref_audio:              # 使用情绪标签选择参考音频，例如 [普通]"你好呀。"
+  # 实例
+  普通: 
+    - 参考音频路径
+    - 参考音频文本

@@ -41,8 +41,8 @@ class SV:
             
             return resampled_data
     def check_speaker(self, speaker_audio: bytes) -> bool:
-        with open("ttmp.wav", "wb") as f:
-            f.write(speaker_audio)
+        # with open("ttmp.wav", "wb") as f:
+        #     f.write(speaker_audio)
         with io.BytesIO(speaker_audio) as f:
             speaker_audio_1, _ = sf.read(f)
         res = {}

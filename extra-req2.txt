@@ -5,3 +5,4 @@ sortedcontainers
 modelscope==1.24.1
 funasr==1.2.6
 numpy==1.25
+pypinyin

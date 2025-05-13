@@ -1,11 +1,19 @@
+import os
+import sys
+
+now_dir = os.getcwd()
+sys.path.append(now_dir)
+sys.path.append("%s/client-gui" % (now_dir))
+sys.path.append("%s/client-gui/src" % (now_dir))
+
 import flet as ft
 import ui
 from threading import Thread
-import utils
+import client_utils
 
-utils_thread = Thread(target=utils.main, args=())
-utils_thread.daemon = True
-utils_thread.start()
+client_utils_thread = Thread(target=client_utils.main, args=())
+client_utils_thread.daemon = True
+client_utils_thread.start()
 
 def get_msg_box(msg: str):
     return ft.Container(
@@ -20,10 +28,10 @@ def main(page: ft.Page):
     page.title = "Moe Chat GUI"
 
     def send_message_click(e):
-        if new_message.value != "" and utils.status:
+        if new_message.value != "" and client_utils.status:
             mmsg = f"\"{new_message.value}\""
-            utils.add_msg_me(mmsg.replace("\"", ""))
-            utils.to_llm_and_tts(mmsg, "0.000")
+            client_utils.add_msg_me(mmsg.replace("\"", ""))
+            client_utils.to_llm_and_tts(mmsg, "0.000")
         new_message.value = ""
         new_message.focus()
         page.update()

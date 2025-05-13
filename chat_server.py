@@ -1,4 +1,8 @@
-# Versdion 0.1.7
+# Versdion 0.1.8
+
+# 2025.05.13
+# 修复一些bug
+# 新增功能：声纹识别、更具情绪标签选择指定参考音频
 
 import yaml
 
@@ -10,6 +14,10 @@ with open("config.yaml", "r", encoding="utf-8") as file:
 llm_api = config_data["LLM"]["api"]
 llm_key = config_data["LLM"]["key"]
 model1 = config_data["LLM"]["model"]
+extra_config = config_data["LLM"]["extra_config"]
+emotion_list = {}
+if "extra_ref_audio" in config_data:
+    emotion_list = config_data["extra_ref_audio"]
 batch_size = 1
 top_k = 15
 try:
@@ -25,6 +33,13 @@ headers = {
     "Content-Type": "application/json",
     "Authorization": f"Bearer {llm_key}"
 }
+
+req_data = {
+    "model": model1 ,
+    "stream": True
+}
+for c in extra_config:
+    req_data[c] = extra_config[c]
 
 import os
 import sys
@@ -57,6 +72,7 @@ from funasr import AutoModel
 from funasr.utils.postprocess_utils import rich_transcription_postprocess
 from utilss.sv import SV
 import torch
+import re
 
 # print(sys.path)
 # i18n = I18nAuto()
@@ -113,6 +129,8 @@ sv_pipeline = ""
 if config_data["Core"]["sv"]["is_up"]:
     sv_pipeline = SV(config_data["Core"]["sv"])
     is_sv = True
+else:
+    is_sv = False
 # vad_model = AutoModel(model="fsmn-vad", disable_update=True)
 
 
@@ -150,13 +168,19 @@ def to_llm(msg: list, res_msg_list: list, full_msg: list):
     global model1
     global llm_api
     global headers
-    data = {
-        "model": model1 ,
-        "messages": msg,
-        # "temperature": 0.75,
-        # "max_tokens": -1,
-        "stream": True
-    }
+    global req_data
+    global emotion_list
+
+    def get_emotion(msg: str):
+        res = re.findall(r'\[(.*?)\]', msg)
+        if len(res) > 0:
+            match = res[-1]
+            if match and emotion_list:
+                if match in emotion_list:
+                    return match
+
+    data = req_data.copy()
+    data["messages"] = msg
     t_t = time.time()
     try:
         response = requests.post(url = llm_api, json=data, headers=headers,stream=True)
@@ -178,6 +202,8 @@ def to_llm(msg: list, res_msg_list: list, full_msg: list):
     tt4 = True
     tt3 = 0
     j = True
+    ref_audio = ""
+    ref_text = ""
     for line in response.iter_lines():
         if line:
             try:
@@ -204,6 +230,7 @@ def to_llm(msg: list, res_msg_list: list, full_msg: list):
                         tt1 = False
                         tt3 = 0
                         continue
+                # 去除()（）包裹的内容
                 if tmp_msg[m] == "(" or tmp_msg[m] == "（":
                     tt2 = False
                     continue
@@ -211,39 +238,49 @@ def to_llm(msg: list, res_msg_list: list, full_msg: list):
                     tt2 = True
                     continue
                 if tt1 and tt2:
-                    ttmp_msg += tmp_msg[m]
+                    ttmp_msg += str(tmp_msg[m])
             tmp_msg = ""
+
+            # 提取文本中的情绪标签，并设置参考音频
+            emotion = get_emotion(res_msg)
+            if emotion:
+                if emotion in emotion_list:
+                    ref_audio = emotion_list[emotion][0]
+                    ref_text = emotion_list[emotion][1]
 
             start = 0
             for m in range(len(ttmp_msg)):
                 if tt4:
                     if ttmp_msg[m] in biao_dian_3 and m > 0:
-                        res_msg_list.append(ttmp_msg[start : m+1])
+                        res_msg_list.append([ref_audio, ref_text, ttmp_msg[start : m+1]])
                         print(f"\n[合成文本]{ttmp_msg[start : m+1]}")
                         start = m + 1
                         tt4 = False
                 else:
                     if ttmp_msg[m] in biao_dian_2 and m > 4:
-                        res_msg_list.append(ttmp_msg[start : m+1])
+                        res_msg_list.append([ref_audio, ref_text, ttmp_msg[start : m+1]])
                         print(f"\n[合成文本]{ttmp_msg[start : m+1]}")
                         start = m + 1
             
             if len(ttmp_msg) != 0:
                 ttmp_msg = ttmp_msg[start:]
     if len(ttmp_msg) > 1:
-        res_msg_list.append(ttmp_msg)
+        res_msg_list.append([ref_audio, ref_text, ttmp_msg])
     
     # 返回完整上下文 
     full_msg.append(res_msg)
     print(full_msg)
-    print(res_msg_list)
+    # print(res_msg_list)
     res_msg_list.append("DONE_DONE")
 
-    
+
 # TTS并写入队
-def to_tts(msg: str):
+def to_tts(tts_data: list):
     global top_k
     global batch_size
+    msg = tts_data[2]
+    ref_audio = tts_data[0]
+    ref_text = tts_data[1]
     if msg in ["…", "~", "~", "。", "？", "！", "?", "!",  ",",  "，"]:
         return "None"
     global config_data
@@ -271,6 +308,9 @@ def to_tts(msg: str):
         "sample_steps": 32,
         "super_sampling": False
     }
+    if ref_audio:
+        datas["ref_audio_path"] = ref_audio
+        datas["prompt_text"] = ref_text
     try:
         byte_data = tts(datas)
         audio_b64 = base64.urlsafe_b64encode(byte_data).decode("utf-8")
@@ -345,7 +385,7 @@ async def text_llm_tts(params: tts_data, start_time):
                 if audio_list[i] == "DONE_DONE":
                     data = {"file": None, "message": full_msg[0], "done": True}
                     yield f"data: {json.dumps(data)}\n\n"
-                data = {"file": audio_list[i], "message": res_list[i], "done": False}
+                data = {"file": audio_list[i], "message": res_list[i][2], "done": False}
                 # audio = str(audio_list[i])
                 # yield str(data)
                 if stat:

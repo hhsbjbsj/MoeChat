@@ -81,7 +81,7 @@ extra_ref_audio:         # 使用情绪标签选择参考音频，例如 [普通
 ##### 带简单GUI的客户端
 ```bash
 # 运行
-.\pp\Scripts\python.exe client-gui\src\client_gui.py
+runtime\python.exe client-gui\src\client_gui.py
 ```
 
 #### Linux

@@ -1,3 +1,5 @@
+# 声纹识别模块
+
 from modelscope.pipelines import pipeline
 import soundfile as sf
 import numpy as np
@@ -13,11 +15,25 @@ class SV:
         if "thr" in config:
             if config["thr"]:
                 self.thr = str(config["thr"])
-        self.sv_pipeline = pipeline(
-            task='speaker-verification',
-            model='iic/speech_res2net_sv_zh-cn_3dspeaker_16k',
-            model_revision='master'
-        )
+        try:
+            self.sv_pipeline = pipeline(
+                task='speaker-verification',
+                model='./utilss/models/speech_res2net_sv_zh-cn_3dspeaker_16k',
+                model_revision='master'
+            )
+        except:
+            print("[错误]未安装声纹模型，开始自动安装声纹模型。")
+            from modelscope import snapshot_download
+            snapshot_download(
+                model_id="iic/speech_res2net_sv_zh-cn_3dspeaker_16k",
+                local_dir="./utilss/models/speech_res2net_sv_zh-cn_3dspeaker_16k",
+                revision="master"
+            )
+            self.sv_pipeline = pipeline(
+                task='speaker-verification',
+                model='./utilss/models/speech_res2net_sv_zh-cn_3dspeaker_16k',
+                model_revision='master'
+            )
     def resample_wav_bytes(self, wav_bytes, target_sr=16000):
         # 使用BytesIO将字节转为文件类对象
         with io.BytesIO(wav_bytes) as wav_file:

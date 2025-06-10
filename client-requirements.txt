@@ -1,7 +1,7 @@
 sounddevice
 soundfile
 pysilero
-numpy
+numpy==1.25.1
 scipy
 pygame
 requests

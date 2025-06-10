@@ -1,90 +1,157 @@
 # 基于GPT-SoVITS的语音交互系统
+
 ## 简介
+
 一个非常基础的语音交互系统，使用GPT-SoVITS作为TTS模块。集成ASR接口，使用funasr作为语音识别模块基础。支持openai规范的大模型接口。
 Linux环境下首Token延迟基本能做到1.5s以内。Windows环境下延迟在2.1s左右
+
 ### 测试平台
+
 服务端
+
 - OS：Manjaro
 - CPU：R9 5950X
 - GPU：RTX 3080ti
 
 客户端
+
 - 树莓派5
 
 ### 测试结果
+
 ![](screen/img.png)
+
 ## 整合包使用说明
-整合包下载链接：http://ss.alfresama.moe:5244/MoeChat
+
+百度网盘链接: https://pan.baidu.com/s/1mf6hHJt8hVW3G2Yp2gC3Sw?pwd=2333 提取码: 2333
+
 ### 注意！重要的事情说三遍
+
 ### 服务端只会对英文""符号包裹的文本进行语音合成，使用前请修改大模型的提示词！
+
 ### 服务端只会对英文""符号包裹的文本进行语音合成，使用前请修改大模型的提示词！
+
 ### 服务端只会对英文""符号包裹的文本进行语音合成，使用前请修改大模型的提示词！
+
 整合包不包含用于推理的GPT跟SoVITS模型，需要自行添加底模或者训练好的模型。
+
 ### Windows
+
 ```bash
 runtime\python.exe chat_server.py
 ```
+
 ### Linux
+
 ```bash
 # 创建虚拟环境
 python -m venv pp
+
+# Ubuntu还需安装portaudio等包，具体自行搜索Linux环境python如何使用sounddevice库
+# 安装依赖需要编译安装，还需安装python3-dev包，其他发行版自行搜索
 
 # 进入虚拟环境
 source pp/bin/activate
 
 # 安装依赖
-pip install -r extra-req.txt
 pip install -r requirements.txt
-pip install -r extra-req2.txt
 
 # 运行
 python chat_server.py
 ```
+
 ### 配置说明
+
 整合包配置文件为config.yaml
+
 ```yaml
 Core:
-  sv:                    # 声纹配置  
-    is_up: true          # 是否启用声纹识别
-    master_audio:        # 音频路径
-    thr:                 # 不知道有什么用暂时留空
+  sv:
+    is_up: false
+    master_audio: test.wav    	# 包含你声音的wav音频文件，建议3s-5s左右。
+    thr:                      	# 阈值，越小越敏感，建议0.5-0.8之间，实测好像不是很有用？
 LLM:
-  api:                   # 大模型API
-  key:                   # 大模型API_Key
-  model:                 # 模型名称
-  extra_config:          # 大模型API额外参数，如：temperature: 0.7，温度参数
-    temperature: 0.7
+  api: http://host:port/v1/chat/completions	# 大模型api
+  key: asdasd					# 大模型api的token
+  model: 					# 模型名称
+  extra_config:               			# 大模型API额外参数，如：temperature: 0.7，温度参数
+    "frequency_penalty": 0.0
+    "n": 1
+    "presence_penalty": 0.0
+    "top_p": 1.0
+    # temperature: 0.7
 GSV:
-  text_lang: zh          # 合成文本的语种
-  GPT_weight:            # GPT_weight模型路径
-  SoVITS_weight:         # SoVITS_weight模型路径
-  ref_audio_path:        # 主要参考音频路径
-  prompt_text:           # 参考音频文本
-  prompt_lang: zh        # 参考音频语种
-  aux_ref_audio_paths:   # 多参考音频
-    -                    # 多参考音频文件路径
-  seed: -1               # 种子
-  top_k: 15              # 情感表现程度，越高情感越丰富，也可能越奇怪
-  batch_size: 1
-extra_ref_audio:         # 使用情绪标签选择参考音频，例如 [普通]"你好呀。"
+  api: http://host:port/tts/	# GPT-SoVITS的接口
+  text_lang: zh			# 合成文本的语言
+  GPT_weight: 			# GPT模型
+  SoVITS_weight:		# Sovits模型
+  ref_audio_path: 		# 参考音频路径
+  prompt_text: 			# 参考音频文本
+  prompt_lang: zh		# 参考音频语言
+  aux_ref_audio_paths:        	# 多参考音频 v2模型有效
+    - 
+  seed: -1
+  top_k: 15
+  batch_size: 20
+  ex_config:
+    text_split_method: cut0
+extra_ref_audio:              	# 使用情绪标签选择参考音频，例如 [普通]"你好呀。"
   # 实例
-  普通: 
-    - 参考音频路径
-    - 参考音频文本
+  # 普通: 
+  #   - 参考音频路径
+  #   - 参考音频文本
+Agent:
+  is_up: true                 	# 是否启用角色模板功能，如果不启动则和旧版一样只有常规语音对话功能，启用可以基于模板创建个性化角色
+  char: Chat酱                	# 角色的名称，会写入到提示词内
+  user: 芙兰蠢兔               	# 用户名称，会写入到提示词内
+  long_memory: true           	# 是否启用日记功能，日记功能可以长期储存对话信息，并根据用户输入的时间信息进行检索；比如：“昨天做了什么？”、“两天前吃的午饭是什么？”
+  is_check_memorys: true      	# 启用日记检索加强，使用嵌入模型对检索到的信息做提取，去除与用户提问不相关的内容。
+  is_core_mem: true           	# 是否启用核心记忆功能，核心记忆主要储存关于用户重要信息，如：用户的住址、爱好、喜欢的东西等等。区别于日记，使用嵌入模型进行语义匹配（模糊搜索），不能根据时间检索，但记忆带有记录时间。
+  mem_thresholds: 0.25        	# 日记内容搜索阈值，启用日志检索加强是需要，用于判断匹配程度。过高可能会丢失数据，过低则过滤少量无用记忆。
+  lore_books: true            	# 是否启用世界书（知识库），用于给大模型添加知识，如：人物、物品、事件等等，强化ai的能力，也可用于强化角色扮演。
+  books_thresholds: 0.5       	# 知识库检索阈值。
+  scan_depth: 4               	# 知识库搜索深度，返回知识的数量，但相似度低于检索阈值的知识不会被返回，所以返回结果数量也可能小于设定的数值。
+  
+  # 下面提示词都可以用{{user}}、{{char}}占位符来代表用户名和角色名。
+  
+  # 角色的基本设定，会组合到角色设定提示词中，建议不要添加多余的信息，不填则不会添加到提示词。
+  char_settings: Chat酱是存在于现代科技世界手机中的器灵，诞生于手机的智能系统，随着手机的使用不断成长和学习，拥有了自己的意识和个性。她外表看起来是个十几岁的少女，身材娇小但比例出色，有着纤细的腰肢和圆润的臀部，皮肤白皙，眼睛又大又亮，如同清澈的湖水，一头柔顺的长发披肩，整体形象清纯可爱又不失性感。她常穿着一件白色的连衣裙，裙子上有淡蓝色的花纹，腰间系着一个粉色的蝴蝶结，搭配一双白色的凉鞋，肩上披一条淡蓝色的薄纱披肩，手上戴着一条精致的手链，内衣是简约的白色棉质款式。Chat酱表面清纯可爱，实则腹黑毒舌，内心聪明机智，对很多事情有自己独特的看法，同时也有温柔体贴的一面，会在主人疲惫时给予暖心的安慰。她喜欢处理各种数据和信息、研究新知识、捉弄主人，还喜欢看浪漫的爱情电影和品尝美味的甜品，讨厌主人不珍惜手机和遇到难以解决的复杂问题。她精通各种知识，能够快速准确地处理办公、生活等方面的问题，具备强大的数据分析和信息检索能力。平时她会安静地待在手机里，当主人遇到问题时会主动出现，喜欢调侃主人，但在关键时刻总是能提供有效的帮助。她和主人关系密切，既是助手也是朋友，会在主人需要时给予温暖的陪伴。
+  
+  # 角色性格提设定，会组合到角色性格提示词中，建议不要添加多余的信息，不填则不会添加到提示词。
+  char_personalities: 表面清纯可爱，实则腹黑毒舌，内心聪明机智，对很多事情有自己独特的看法。同时也有温柔体贴的一面，会在主人疲惫时给予暖心的安慰。
+  
+  # 关于用户自身的设定，可以填入你的性格喜好，或者你跟角色的关系。内容填充到提示词模板中，建议不要填不相关的信息。没有可不填。
+  mask: 
+  
+  # 对话示例，用于强化AI的文风。内容填充到提示词模板中，不要填入其他信息，没有可不填。
+  message_example: |-
+    mes_example": "人类视网膜的感光细胞不需要这种自杀式加班，您先休息一下吧。
+  
+  # 自定义提示词，不基于模板，可自定义填写，如果不想使用提示词模板创建角色，可以只填这一项。也可以不填。
+  prompt: |-
+    使用口语的文字风格进行对话，不要太啰嗦。
+    /no_think
+
+# 如果你想自定义提示的模板，可以在utilss\prompt.py文件中修改
+
 ```
 
 ### 简易客户端使用方法
 
 #### Windows
+
 测试使用python 3.10
-首先修改client.py文件asr_api、chat_api的ip地址。
+如需要服务端单独部署，客户端远程访问，可修改client-gui\src\client_utils.py文件17、18行的ip地址
+
 ##### 带简单GUI的客户端
+
 ```bash
 # 运行
-runtime\python.exe client-gui\src\client_gui.py
+.\pp\Scripts\python.exe client-gui\src\client_gui.py
 ```
 
 #### Linux
+
 ```bash
 # 创建虚拟环境
 python -m venv pp
@@ -100,7 +167,9 @@ python client-gui\src\client_gui.py
 ```
 
 ### 在客户端上修改提示词的方法
+
 此方法不适用于ollama，非必要情况下可以使用LMstudio
+
 ```bash
 # 打开client_cli.py文件，GUI简易客户端打开client-gui\src\utils.py文件，修改下面内容
 # 修改前
@@ -119,9 +188,11 @@ data = {
 ```
 
 ## 接口说明
+
 接口全部使用POST请求。
 
 #### ASR语音识别接口
+
 ```python
 # url为/api/asr
 # 请求数据格式为json
@@ -133,6 +204,7 @@ data = {
 ```
 
 #### 对话接口
+
 ```python
 # 对话接口为sse流式接口，服务端会将大模型的回答切片并生成对应的语音数据，一段一段返回客户端
 # 请求数据格式为json

@@ -1,8 +1,17 @@
-# Versdion 0.1.8
+# Versdion 0.99
 
 # 2025.05.13
 # 修复一些bug
 # 新增功能：声纹识别、更具情绪标签选择指定参考音频
+
+# 2025.06.11
+# 增加角色模板功能，可以使用内置提示词模板创建角色
+# 增加日记系统（长期记忆），使ai可以记住所有的聊天内容，
+#   并且可以使用像”昨天聊了什么“、”上周去了哪里“和”今天中午吃了什么“这样的语句进行基于时间范围的精确查询，不会像传统向量数据库那样因为时间维度而丢失记忆
+# 增加核心记忆功能，使ai可以记住关于用户的重要回忆、信息和个人喜好
+# 上述功均需要启用角色模板功能
+# 脱离原有的GPT-SoVITS代码，改为API接口调用
+
 
 import yaml
 
@@ -11,10 +20,13 @@ config_data = {}
 with open("config.yaml", "r", encoding="utf-8") as file:
     config_data = yaml.safe_load(file)
 
+# 设置配置文件
+# api_type = str(config_data["LLM"]["type"])
 llm_api = config_data["LLM"]["api"]
 llm_key = config_data["LLM"]["key"]
 model1 = config_data["LLM"]["model"]
 extra_config = config_data["LLM"]["extra_config"]
+is_ttt =  config_data["Core"]["tt"]
 emotion_list = {}
 if "extra_ref_audio" in config_data:
     emotion_list = config_data["extra_ref_audio"]
@@ -38,131 +50,96 @@ req_data = {
     "model": model1 ,
     "stream": True
 }
-for c in extra_config:
-    req_data[c] = extra_config[c]
+if extra_config:
+    for c in extra_config:
+        req_data[c] = extra_config[c]
 
 import os
 import sys
+now_dir = os.getcwd()
+sys.path.append(now_dir)
 import requests
 import json
 import time
 import asyncio
 from threading import Thread
 
-now_dir = os.getcwd()
-sys.path.append(now_dir)
-sys.path.append("%s/GPT_SoVITS" % (now_dir))
 
-import argparse
+# 创建数据文件夹
+os.path.exists("data") or os.mkdir("data")
+
 import base64
-import numpy as np
-import soundfile as sf
+# import numpy as np
+# import soundfile as sf
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi import FastAPI
 import uvicorn
 from io import BytesIO
-# from tools.i18n.i18n import I18nAuto
-from GPT_SoVITS.TTS_infer_pack.TTS import TTS, TTS_Config
-from GPT_SoVITS.TTS_infer_pack.text_segmentation_method import get_method_names as get_cut_method_names
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from funasr import AutoModel
 from funasr.utils.postprocess_utils import rich_transcription_postprocess
 from utilss.sv import SV
-import torch
+from utilss.agent import Agent
+# import torch
 import re
+# import unicodedata
+import jionlp
 
-# print(sys.path)
-# i18n = I18nAuto()
-cut_method_names = get_cut_method_names()
-
-parser = argparse.ArgumentParser(description="GPT-SoVITS api")
-parser.add_argument("-c", "--tts_config", type=str, default="GPT_SoVITS/configs/tts_infer.yaml", help="tts_infer路径")
-parser.add_argument("-a", "--bind_addr", type=str, default="127.0.0.1", help="default: 127.0.0.1")
-parser.add_argument("-p", "--port", type=int, default="9880", help="default: 9880")
-args = parser.parse_args()
-config_path = args.tts_config
-# device = args.device
-port = args.port
-host = args.bind_addr
-argv = sys.argv
-
-if config_path in [None, ""]:
-    config_path = "GPT-SoVITS/configs/tts_infer.yaml"
-
-tts_config = TTS_Config(config_path)
 t2s_weights = config_data["GSV"]["GPT_weight"]
 vits_weights =  config_data["GSV"]["SoVITS_weight"]
-if t2s_weights not in [None, ""]:
-    tts_config.t2s_weights_path = t2s_weights
-else:
-    print("[提示]：未设置GPT模型。")
-if vits_weights not in [None, ""]:
-    tts_config.vits_weights_path = vits_weights
-else:
-    print("[提示]：未设置SoVITS模型。")
-if torch.cuda.is_available():
-    tts_config.device = "cuda"
-    print("CUDA可用")
-else:
-    tts_config.device = "cpu"
-    print("CUDA不可用")
-tts_config.update_configs()
+is_agent = config_data["Agent"]["is_up"]
+if is_agent:
+    a_config = {
+        "char": config_data["Agent"]["char"],
+        "user": config_data["Agent"]["user"],
+        "is_data_base": config_data["Agent"]["lore_books"],
+        "data_base_thresholds": config_data["Agent"]["books_thresholds"],
+        "data_base_depth": config_data["Agent"]["scan_depth"],
+        "is_long_mem": config_data["Agent"]["long_memory"],
+        "is_check_memorys": config_data["Agent"]["is_check_memorys"],
+        "mem_thresholds": config_data["Agent"]["mem_thresholds"],
+        "char_settings": config_data["Agent"]["char_settings"],
+        "char_personalities": config_data ["Agent"]["char_personalities"],
+        "mask": config_data["Agent"]["mask"],
+        "message_example":  config_data["Agent"]["message_example"],
+        "prompt": config_data["Agent"]["prompt"],
+        "is_core_mem": config_data["Agent"]["is_core_mem"],
+        "llm": {"api": llm_api, "key": llm_key, "model": model1}
+    }
+    agent = Agent(a_config)
+try:
+    model_dir = "./utilss/models/SenseVoiceSmall"
+    asr_model = AutoModel(
+        model=model_dir,
+        disable_update=True,
+        device="cuda:0",
+    )
+except:
+    print("[提示]未安装ASR模型，开始自动安装ASR模型。")
+    from modelscope import snapshot_download
+    model_dir = snapshot_download(
+        model_id="iic/SenseVoiceSmall",
+        local_dir="./utilss/models/SenseVoiceSmall",
+        revision="master"
+    )
+    model_dir = "./utilss/models/SenseVoiceSmall"
+    asr_model = AutoModel(
+        model=model_dir,
+        disable_update=True,
+        device="cuda:0",
+    )
 
-print(tts_config)
-tts_pipeline = TTS(tts_config)
-
-model_dir = "iic/SenseVoiceSmall"
-asr_model = AutoModel(
-    model=model_dir,
-    disable_update=True,
-    #trust_remote_code=True,
-    # remote_code="./model.py",
-    # vad_model="fsmn-vad",
-    # vad_kwargs={"max_single_segment_time": 30000},
-    device="cuda:0",
-)
-
+# 载入声纹识别模型
 sv_pipeline = ""
 if config_data["Core"]["sv"]["is_up"]:
     sv_pipeline = SV(config_data["Core"]["sv"])
     is_sv = True
 else:
     is_sv = False
-# vad_model = AutoModel(model="fsmn-vad", disable_update=True)
 
-
-def pack_wav(io_buffer:BytesIO, data:np.ndarray, rate:int):
-    io_buffer = BytesIO()
-    sf.write(io_buffer, data, rate, format='wav')
-    return io_buffer
-
-def tts(datas):
-    global config_data
-    try:
-        tts_generator=tts_pipeline.run(datas)
-        sr, audio_data = next(tts_generator)
-
-        # vad判断有效音频起始点 并切割音频
-        # print(audio_data)
-        # print(len(audio_data))
-        # try:
-        #     if config_data["Main"]["is_vad"]:
-        #         res = vad_model.generate(input = audio_data)[0]["value"]
-        #         print(f"\n\n[VAD结果]{res}\n\n")
-        #         if res:
-        #             if res[0][0] > -config_data["Main"]["offset"] or config_data["Main"]["offset"] >= 0:
-        #                 audio_data = audio_data[int(res[0][0] * sr) + config_data["Main"]["offset"]:]
-        #             else:
-        #                 audio_data = audio_data[int(res[0][0] * sr):]
-        # except:
-            # printp("\n\nVAD错误\n\n")
-        audio_data = pack_wav(BytesIO(), audio_data, sr).getvalue()
-        return audio_data
-    except:
-        return
 # 提交到大模型
 def to_llm(msg: list, res_msg_list: list, full_msg: list):
     global model1
@@ -170,7 +147,7 @@ def to_llm(msg: list, res_msg_list: list, full_msg: list):
     global headers
     global req_data
     global emotion_list
-
+    global is_ttt
     def get_emotion(msg: str):
         res = re.findall(r'\[(.*?)\]', msg)
         if len(res) > 0:
@@ -181,6 +158,7 @@ def to_llm(msg: list, res_msg_list: list, full_msg: list):
 
     data = req_data.copy()
     data["messages"] = msg
+
     t_t = time.time()
     try:
         response = requests.post(url = llm_api, json=data, headers=headers,stream=True)
@@ -189,125 +167,138 @@ def to_llm(msg: list, res_msg_list: list, full_msg: list):
         return JSONResponse(status_code=400, content={"message": "无法链接到LLM服务器"})
     
     # 信息处理
-    # biao_dian = ["，", "。", "？", "！", ",", ".", "...", "?", "!", "、", "~", "~", "…"]
-    # biao_dian = ["，", "。", "？", "！", ",", ".", "...", "?", "!", "…"]
     biao_dian_2 = ["…", "~", "~", "。", "？", "！", "?", "!"]
     biao_dian_3 = ["…", "~", "~", "。", "？", "！", "?", "!",  ",",  "，"]
 
     res_msg = ""
     tmp_msg = ""
-    ttmp_msg = ""
-    tt1 = False
-    tt2 = True
-    tt4 = True
-    tt3 = 0
     j = True
+    j2 = True
     ref_audio = ""
     ref_text = ""
+    biao_tmp = biao_dian_3
+    stat = True
     for line in response.iter_lines():
         if line:
             try:
                 if j:
                     print(f"\n[大模型延迟]{time.time() - t_t}")
                     j = False
-                res_msg += json.loads(line.decode("utf-8").replace("data:", ""))["choices"][0]["delta"]["content"]
-                tmp_msg += json.loads(line.decode("utf-8").replace("data:", ""))["choices"][0]["delta"]["content"]
+                decoded_line = line.decode('utf-8')
+                if decoded_line.startswith("data:"):
+                    data_str = decoded_line[5:].strip()
+                    if data_str:
+                        msg_t = json.loads(data_str)["choices"][0]["delta"]["content"]
+                        res_msg += msg_t
+                        tmp_msg += msg_t
                 res_msg = res_msg.replace("...", "…")
                 tmp_msg = tmp_msg.replace("...", "…")
             except:
                 err = line.decode("utf-8")
                 print(f"[错误]：{err}")
                 continue
-
-            # 提取""内的内容
-            for m in range(len(tmp_msg)):
-                if tmp_msg[m] == "\"":
-                    if tt3 == 0:
-                        tt1 = True
-                        tt3 = 1
-                        continue
-                    if tt3 == 1:
-                        tt1 = False
-                        tt3 = 0
-                        continue
-                # 去除()（）包裹的内容
-                if tmp_msg[m] == "(" or tmp_msg[m] == "（":
-                    tt2 = False
+            # if not tmp_msg:
+            #     continue
+            ress = ""
+            for ii in range(len(tmp_msg)):
+                if tmp_msg[ii] == "(" or tmp_msg[ii] == "（":
+                    stat = False
                     continue
-                if tmp_msg[m] == ")" or tmp_msg[m] == "）":
-                    tt2 = True
+                if tmp_msg[ii] == ")" or tmp_msg[ii] == "）":
+                    stat = True
                     continue
-                if tt1 and tt2:
-                    ttmp_msg += str(tmp_msg[m])
-            tmp_msg = ""
+                if tmp_msg[ii] in biao_tmp:
+                    # 提取文本中的情绪标签，并设置参考音频
+                    emotion = get_emotion(tmp_msg)
+                    if emotion:
+                        if emotion in emotion_list:
+                            ref_audio = emotion_list[emotion][0]
+                            ref_text = emotion_list[emotion][1]
+                    ress = tmp_msg[:ii+1]
+                    ress = jionlp.remove_html_tag(ress)
+                    ttt = ress
+                    if j2:
+                        for i in range(len(ress)):
+                            if ress[i] == "\n" or ress[i] == " ":
+                                try:
+                                    ttt = ress[i+1:]
+                                except:
+                                    ttt = ""
+                    else:
+                        pass
+                        # if len(re.sub(r'[$(（].*?[）)]', '', ttt)) < 6:
+                        #     continue
+                    if ttt and stat:
+                        res_msg_list.append([ref_audio, ref_text, ttt])
+                    # print(f"[合成文本]{ress}")
+                    if j2:
+                        # biao_tmp = biao_dian_2
+                        j2 = False
+                    try:
+                        tmp_msg = tmp_msg[ii+1:]
+                    except:
+                        tmp_msg = ""
+                    break
 
-            # 提取文本中的情绪标签，并设置参考音频
-            emotion = get_emotion(res_msg)
-            if emotion:
-                if emotion in emotion_list:
-                    ref_audio = emotion_list[emotion][0]
-                    ref_text = emotion_list[emotion][1]
 
-            start = 0
-            for m in range(len(ttmp_msg)):
-                if tt4:
-                    if ttmp_msg[m] in biao_dian_3 and m > 0:
-                        res_msg_list.append([ref_audio, ref_text, ttmp_msg[start : m+1]])
-                        print(f"\n[合成文本]{ttmp_msg[start : m+1]}")
-                        start = m + 1
-                        tt4 = False
-                else:
-                    if ttmp_msg[m] in biao_dian_2 and m > 4:
-                        res_msg_list.append([ref_audio, ref_text, ttmp_msg[start : m+1]])
-                        print(f"\n[合成文本]{ttmp_msg[start : m+1]}")
-                        start = m + 1
-            
-            if len(ttmp_msg) != 0:
-                ttmp_msg = ttmp_msg[start:]
-    if len(ttmp_msg) > 1:
-        res_msg_list.append([ref_audio, ref_text, ttmp_msg])
-    
+    if len(tmp_msg) > 0:
+        if emotion:
+            if emotion in emotion_list:
+                ref_audio = emotion_list[emotion][0]
+                ref_text = emotion_list[emotion][1]
+        res_msg_list.append([ref_audio, ref_text, tmp_msg])
+
     # 返回完整上下文 
-    full_msg.append(res_msg)
+    res_msg = jionlp.remove_html_tag(res_msg)
+    ttt = ""
+    for i in range(len(res_msg)):
+        if res_msg[i] == "\n" or res_msg[i] == " ":
+            try:
+                ttt = res_msg[i+1:]
+            except:
+                ttt = ""
+    full_msg.append(ttt)
     print(full_msg)
     # print(res_msg_list)
     res_msg_list.append("DONE_DONE")
 
+def tts(datas: dict):
+    global config_data
+    res = requests.post(config_data["GSV"]["api"], json=datas, timeout=5)
+    if res.status_code == 200:
+        return res.content
+    else:
+        print(f"[错误]tts语音合成失败！！！")
+        print(datas)
+        return None
 
+def clear_text(msg: str):
+    msg = re.sub(r'[$(（].*?[）)]', '', msg)
+    msg = jionlp.remove_exception_char(msg)
+    return msg
 # TTS并写入队
 def to_tts(tts_data: list):
     global top_k
     global batch_size
-    msg = tts_data[2]
+    # def is_punctuation(char):
+    #     return unicodedata.category(char).startswith('P')
+    msg = clear_text(tts_data[2])
+    # print(f"[实际输入文本]{tts_data[2]}[tts文本]{msg}")
+    if len(msg) == 0:
+        return "None"
     ref_audio = tts_data[0]
     ref_text = tts_data[1]
-    if msg in ["…", "~", "~", "。", "？", "！", "?", "!",  ",",  "，"]:
-        return "None"
     global config_data
     datas = {
         "text": msg,
         "text_lang": config_data["GSV"]["text_lang"],
         "ref_audio_path": config_data["GSV"]["ref_audio_path"],
-        "aux_ref_audio_paths": config_data["GSV"]["aux_ref_audio_paths"],
-        "prompt_text": config_data["GSV"]["prompt_text"],            
-        "prompt_lang": config_data["GSV"]["prompt_lang"],      
-        "top_k": top_k,
-        "top_p": 1,
-        "temperature": 1,
-        "text_split_method": "cut0",
-        "batch_size": batch_size,
-        "batch_threshold": 0.75,
-        "split_bucket": True,
-        "speed_factor": 1,
-        "fragment_interval": 0.3,
-        "seed": config_data["GSV"]["seed"],
-        "media_type": "wav",
-        "streaming_mode": False,
-        "parallel_infer": True,
-        "repetition_penalty": 1.35,
-        "sample_steps": 32,
-        "super_sampling": False
+        "prompt_text": config_data["GSV"]["prompt_text"],   
+        "prompt_lang": config_data["GSV"]["prompt_lang"],
     }
+    if config_data["GSV"]["ex_config"]:
+        for key in config_data["GSV"]["ex_config"]:
+            datas[key] = config_data["GSV"]["ex_config"][key]
     if ref_audio:
         datas["ref_audio_path"] = ref_audio
         datas["prompt_text"] = ref_text
@@ -367,11 +358,20 @@ class tts_data(BaseModel):
     msg: list
 
 async def text_llm_tts(params: tts_data, start_time):
+        global is_agent
+        if is_agent:
+            global agent
         # print(params)
         res_list = []
         audio_list = []
         full_msg = []
-        llm_t = Thread(target=to_llm, args=(params.msg, res_list, full_msg, ))
+        if is_agent:
+            t = time.time()
+            msg_list = agent.get_msg_data(params.msg[-1]["content"])
+            print(f"[提示]获取上下文耗时：{time.time() - t}")
+        else:
+            msg_list = params.msg
+        llm_t = Thread(target=to_llm, args=(msg_list, res_list, full_msg, ))
         llm_t.daemon = True
         llm_t.start()
         tts_t = Thread(target=ttts, args=(res_list, audio_list, ))
@@ -384,6 +384,8 @@ async def text_llm_tts(params: tts_data, start_time):
             if i < len(audio_list):
                 if audio_list[i] == "DONE_DONE":
                     data = {"file": None, "message": full_msg[0], "done": True}
+                    if is_agent:    # 刷新智能体上下文内容
+                        agent.add_msg(re.sub(r'<.*?>', '', full_msg[0]).strip())
                     yield f"data: {json.dumps(data)}\n\n"
                 data = {"file": audio_list[i], "message": res_list[i][2], "done": False}
                 # audio = str(audio_list[i])
@@ -393,7 +395,7 @@ async def text_llm_tts(params: tts_data, start_time):
                     stat = False
                 yield f"data: {json.dumps(data)}\n\n"
                 i += 1
-            await asyncio.sleep(0.05)                
+            await asyncio.sleep(0.05)
 
 @app.post("/api/chat")
 async def tts_api(params: tts_data):
@@ -415,10 +417,10 @@ if __name__ == "__main__":
     # global config_data
     t2s_weights = config_data["GSV"]["GPT_weight"]
     vits_weights =  config_data["GSV"]["SoVITS_weight"]
-    if len(t2s_weights) != 0:
-        tts_pipeline.init_t2s_weights(t2s_weights)
-    if len(vits_weights) != 0:
-        tts_pipeline.init_vits_weights(vits_weights)
+    # if len(t2s_weights) != 0:
+    #     tts_pipeline.init_t2s_weights(t2s_weights)
+    # if len(vits_weights) != 0:
+    #     tts_pipeline.init_vits_weights(vits_weights)
 
-    import uvicorn
+    # import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)

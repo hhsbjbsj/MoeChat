@@ -46,9 +46,9 @@ def add_msg(str_msg: str):
         ui.chat_list.controls.append(msg.cont)
     else:
         if ui.chat_list.controls[-1].alignment == ft.MainAxisAlignment.START:
-            ui.chat_list.controls[-1].controls[-1].controls.append(ui.get_msg_box(str_msg))
+            ui.chat_list.controls[-1].controls[-1].controls[-1].content.value += str_msg
         else:
-            ui.chat_list.controls[-1].controls[0].controls.append(ui.get_msg_box(str_msg))
+            ui.chat_list.controls[-1].controls[0].controls[-1].content.value += str_msg
     ui.chat_list.update()
     ui.chat_list.scroll_to(offset=-1, duration=1000)
 
@@ -93,6 +93,8 @@ def to_llm_and_tts(msg: str, asr_c: str):
     global chat_api
     global data
     global status
+
+    msg = msg.replace("\"", "")
 
     print(f"[ars耗时:{asr_c}]{msg}")
     status = False

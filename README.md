@@ -21,14 +21,32 @@ Linux环境下首Token延迟基本能做到1.5s以内。Windows环境下延迟�
 
 ![](screen/img.png)
 
-## 整合包使用说明
+## 更新日志
+### 2025.05.13
+- 修复一些bug
+- 新增功能：声纹识别、更具情绪标签选择指定参考音频
+### 2025.06.11
+- 增加角色模板功能，可以使用内置提示词模板创建角色
+- 增加日记系统（长期记忆），使ai可以记住所有的聊天内容，
+-   并且可以使用像”昨天聊了什么“、”上周去了哪里“和”今天中午吃了什么“这样的语句进行基于时间范围的精确查询，不会像传统向量数据库那样因为时间维度而丢失记忆
+- 增加核心记忆功能，使ai可以记住关于用户的重要回忆、信息和个人喜好
+- 上述功均需要启用角色模板功能
+- 脱离原有的GPT-SoVITS代码，改为API接口调用
+
+# 整合包使用说明
 稍后上传
 整合包不包含用于推理的GPT跟SoVITS模型，需要自行添加底模或者训练好的模型。
 
 ### Windows
 
 ```bash
-runtime\python.exe chat_server.py
+# 启动GPT-SoVITS服务端
+# 在GPT-SoVITS-v2pro-20250604文件夹打开终端，输入命令
+runtime\python.exe api_v2.py
+
+# 启动MoeChat服务端
+# 在整合包目录打开终端，输入命令
+GPT-SoVITS-v2pro-20250604\runtime\python.exe chat_server.py
 ```
 
 ### Linux
@@ -48,6 +66,36 @@ pip install -r requirements.txt
 
 # 运行
 python chat_server.py
+```
+
+### 简易客户端使用方法
+
+#### Windows
+
+测试使用python 3.10
+如需要服务端单独部署，客户端远程访问，可修改client-gui\src\client_utils.py文件17、18行的ip地址
+
+##### 带简单GUI的客户端
+
+```bash
+# 运行
+GPT-SoVITS-v2pro-20250604\runtime\python.exe client-gui\src\client_gui.py
+```
+
+#### Linux
+
+```bash
+# 创建虚拟环境，如果创建过虚拟环境了可以跳过
+python -m venv pp
+
+# 进入虚拟环境
+source pp/bin/activate
+
+# 安装依赖
+pip install -r client-requirements.txt
+
+# 启动
+python client-gui\src\client_gui.py
 ```
 
 ### 配置说明
@@ -124,57 +172,6 @@ Agent:
 
 # 如果你想自定义提示的模板，可以在utilss\prompt.py文件中修改
 
-```
-
-### 简易客户端使用方法
-
-#### Windows
-
-测试使用python 3.10
-如需要服务端单独部署，客户端远程访问，可修改client-gui\src\client_utils.py文件17、18行的ip地址
-
-##### 带简单GUI的客户端
-
-```bash
-# 运行
-.\pp\Scripts\python.exe client-gui\src\client_gui.py
-```
-
-#### Linux
-
-```bash
-# 创建虚拟环境
-python -m venv pp
-
-# 进入虚拟环境
-source pp/bin/activate
-
-# 安装依赖
-pip install -r client-requirements.txt
-
-# 启动
-python client-gui\src\client_gui.py
-```
-
-### 在客户端上修改提示词的方法
-
-此方法不适用于ollama，非必要情况下可以使用LMstudio
-
-```bash
-# 打开client_cli.py文件，GUI简易客户端打开client-gui\src\utils.py文件，修改下面内容
-# 修改前
-# 用于存储上下文内容
-data = {
-    "msg": []
-}
-
-#修改后
-# 用于存储上下文内容
-data = {
-    "msg": [
-        {"role":"system", "content": ```填入你的提示词```}
-    ]
-}
 ```
 
 ## 接口说明

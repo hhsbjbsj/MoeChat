@@ -421,13 +421,13 @@ if __name__ == "__main__":
     # global config_data
     t2s_weights = config_data["GSV"]["GPT_weight"]
     vits_weights =  config_data["GSV"]["SoVITS_weight"]
-    if len(t2s_weights) != 0:
+    if t2s_weights:
         print(f"设置GPT_weights...")
         params = {
             "weights_path": t2s_weights
         }
         requests.get(str(config_data["GSV"]["api"]).replace("/tts", "/set_gpt_weights"), params=params)
-    if len(vits_weights) != 0:
+    if vits_weights:
         print(f"设置SoVITS...")
         params = {
             "weights_path": vits_weights

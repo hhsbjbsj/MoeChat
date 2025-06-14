@@ -12,6 +12,7 @@ import json
 import ui
 import flet as ft
 import onnxruntime as ort
+import noisereduce as nr
 
 # 加载 ONNX 模型
 model_path = "silero_vad.onnx"
@@ -96,12 +97,10 @@ def play_autio(audio_data, msg, t):
 def to_llm_and_tts(msg: str, asr_c: str):
     global chat_api
     global data
-    global status
 
     msg = msg.replace("\"", "")
 
     print(f"[ars耗时:{asr_c}]{msg}")
-    status = False
     data["msg"].append(
         {
             "role": "user",
@@ -116,7 +115,6 @@ def to_llm_and_tts(msg: str, asr_c: str):
     except:
         print("\n[error]无法连接大模型服务器...")
         data["msg"].remove(-1)
-        status = True
         print("\n")
         print("Me:")
         return
@@ -158,23 +156,28 @@ def to_llm_and_tts(msg: str, asr_c: str):
 
     for t in tt_list:
         t.join()
-    time.sleep(0.3)
-    status = True
     print("\n")
     print("Me:")
 
 def to_asr(audio: bytes, t):
     global asr_api
+    global status
+
     audio64 = base64.urlsafe_b64encode(audio).decode("utf-8")
     ddd = {"data": audio64}
-    res = requests.post(asr_api, json=ddd)
+    res = requests.post(asr_api, json=ddd).text.replace("\"", "").replace(" ", "").replace("\n", "")
     # asr耗时
     t = f"{(time.time() - t):.3f}"
-    if res.text == "\"None\"":
+    if res == "null" or len(res) == 0:
         return
-    add_msg_me(res.text.replace("\"", ""))
+    if not status:
+        return
+    status = False
+    add_msg_me(res)
     # print(f"\nAi:")
-    to_llm_and_tts(res.text, t)
+    to_llm_and_tts(res, t)
+    time.sleep(0.5)
+    status = True
 
 def gen_audio(current_speech):
     t = time.time()
@@ -194,7 +197,8 @@ def gen_audio(current_speech):
 
 def check_speaker(indata):
     # 转换数据格式
-    audio_data = indata[:, 0]  # 只取单声道
+    # audio_data = indata[:, 0]  # 只取单声道
+    audio_data = indata
     audio_data = np.expand_dims(audio_data.astype(np.float32), axis=0)  # 调整维度
     state = np.zeros((2, 1, 128), dtype=np.float32)
     sr = np.array(16000, dtype=np.int64)
@@ -204,7 +208,7 @@ def check_speaker(indata):
     vad_prob = session.run(None, ort_inputs)[0]
     
     # 判断是否为语音
-    if vad_prob > 0.5:
+    if vad_prob > 0.7:
         return True
     else:
         return False
@@ -235,6 +239,7 @@ def main():
         while True:
             # 读取音频数据
             samples, _ = s.read(samples_per_read)
+            samples = nr.reduce_noise(y=samples[:,0], sr=sr)
             resampled = resample(samples, num_points)         # 4800 → 1600 样本
             resampled = resampled.astype(np.float32)         # 保持数据类型一致
             res = check_speaker(resampled)

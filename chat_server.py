@@ -129,7 +129,8 @@ except:
     asr_model = AutoModel(
         model=model_dir,
         disable_update=True,
-        device="cuda:0",
+        # device="cuda:0",
+        device="cpu",
     )
 
 # 载入声纹识别模型
@@ -167,8 +168,8 @@ def to_llm(msg: list, res_msg_list: list, full_msg: list):
         return JSONResponse(status_code=400, content={"message": "无法链接到LLM服务器"})
     
     # 信息处理
-    biao_dian_2 = ["…", "~", "~", "。", "？", "！", "?", "!"]
-    biao_dian_3 = ["…", "~", "~", "。", "？", "！", "?", "!",  ",",  "，"]
+    biao_dian_2 = ["…", "~", "～", "。", "？", "！", "?", "!"]
+    biao_dian_3 = ["…", "~", "～", "。", "？", "！", "?", "!",  ",",  "，"]
 
     res_msg = ""
     tmp_msg = ""
@@ -201,10 +202,10 @@ def to_llm(msg: list, res_msg_list: list, full_msg: list):
             #     continue
             ress = ""
             for ii in range(len(tmp_msg)):
-                if tmp_msg[ii] == "(" or tmp_msg[ii] == "（":
+                if tmp_msg[ii] == "(" or tmp_msg[ii] == "（" or tmp_msg[ii] == "[":
                     stat = False
-                    continue
-                if tmp_msg[ii] == ")" or tmp_msg[ii] == "）":
+                    break
+                if tmp_msg[ii] == ")" or tmp_msg[ii] == "）" or tmp_msg[ii] == "]":
                     stat = True
                     continue
                 if tmp_msg[ii] in biao_tmp:
@@ -224,15 +225,14 @@ def to_llm(msg: list, res_msg_list: list, full_msg: list):
                                     ttt = ress[i+1:]
                                 except:
                                     ttt = ""
-                    else:
-                        pass
-                        # if len(re.sub(r'[$(（].*?[）)]', '', ttt)) < 6:
-                        #     continue
+                    # if not j2:
+                    #     if len(re.sub(r'[$(（[].*?[]）)]', '', ttt)) < 4:
+                    #         continue
                     if ttt and stat:
                         res_msg_list.append([ref_audio, ref_text, ttt])
                     # print(f"[合成文本]{ress}")
                     if j2:
-                        # biao_tmp = biao_dian_2
+                        biao_tmp = biao_dian_2
                         j2 = False
                     try:
                         tmp_msg = tmp_msg[ii+1:]
@@ -242,6 +242,7 @@ def to_llm(msg: list, res_msg_list: list, full_msg: list):
 
 
     if len(tmp_msg) > 0:
+        emotion = get_emotion(tmp_msg)
         if emotion:
             if emotion in emotion_list:
                 ref_audio = emotion_list[emotion][0]
@@ -273,7 +274,7 @@ def tts(datas: dict):
         return None
 
 def clear_text(msg: str):
-    msg = re.sub(r'[$(（].*?[）)]', '', msg)
+    msg = re.sub(r'[$(（[].*?[]）)]', '', msg)
     msg = jionlp.remove_exception_char(msg)
     return msg
 # TTS并写入队
@@ -330,7 +331,7 @@ def asr(audio_data: bytes):
     tt = time.time()
     if is_sv:
         if not sv_pipeline.check_speaker(audio_data):
-            return "None"
+            return None
     # with open(f"./tmp/{tt}.wav", "wb") as file:
     #     file.write(audio_data)
     audio_data = BytesIO(audio_data)
@@ -339,15 +340,18 @@ def asr(audio_data: bytes):
         # input=f"{model.model_path}/example/zh.mp3",
         cache={},
         language="zh", # "zh", "en", "yue", "ja", "ko", "nospeech"
-        use_itn=True,
-        batch_size=200,
+        ban_emo_unk=True,
+        use_itn=False,
+        # batch_size=200,
     )
     # print(f"{model.model_path}/example/zh.mp3",)
-    text = rich_transcription_postprocess(res[0]["text"])
+    text = str(rich_transcription_postprocess(res[0]["text"])).replace(" ", "")
     # text = res[0]["text"]
     print()
     print(f"[{time.time() - tt}]{text}\n\n")
-    return text
+    if text:
+        return text
+    return None
 
 
 # -----------------------------------API接口部分----------------------------------------------------------

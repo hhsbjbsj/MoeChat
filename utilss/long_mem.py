@@ -111,14 +111,15 @@ class Memorys:
         if not res_index:
             return
         # 将时间范围内的记忆添加到结果中
-        if self.is_check_memorys and res_index:
+        if self.is_check_memorys:
+            print(f"[提示]深度检索记忆，检索阈值{self.thresholds}")
             q_v = embedding.t2vect([msg])[0]
             tmp_msg = ""
             for index in range(res_index[0]+1, res_index[1]+1):
                 rr = np.dot(self.vectors[index], q_v)
-                if rr >= 0.39:
+                if rr >= self.thresholds:
                     tmp_msg += str(self.memorys_data[self.memorys_key[index]])
-                    tmp_msg += "\n\n"
+                    tmp_msg += "\n"
             if len(tmp_msg) > 0:
                 res_msg.append(tmp_msg)
             # mem_list = []
@@ -131,7 +132,7 @@ class Memorys:
             tmp_mem = ""
             for index in range(res_index[0]+1, res_index[1]+1):
                 tmp_mem += str(self.memorys_data[self.memorys_key[index]])
-                tmp_mem += "\n\n"
+                tmp_mem += "\n"
             if len(tmp_mem) > 0:
                 res_msg.append(tmp_mem)
     
@@ -184,11 +185,13 @@ class Memorys:
             res = requests.post(llm_config["api"], json=res_body, headers=headers, timeout=15)
             res = res.json()["choices"][0]["message"]["content"]
             res = jionlp.remove_html_tag(res).replace(" ", "").replace("\n", "")
-            if res.find("日常闲聊") != -1:
+            print(f"[记录日记结果]【{res}】")
+            if res.find("日常闲聊") == -1:
                 res_tag = res
             else:
                 res_tag = "日常闲聊"
         except:
+            print("【错误获取聊天信息失败！】")
             res_tag = "日常闲聊"
         t_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(t_n))
         m1 = data[-2]["content"]

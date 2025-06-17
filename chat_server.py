@@ -251,13 +251,16 @@ def to_llm(msg: list, res_msg_list: list, full_msg: list):
 
     # 返回完整上下文 
     res_msg = jionlp.remove_html_tag(res_msg)
+    if len(res_msg) == 0:
+        full_msg.append(res_msg)
+        res_msg_list.append("DONE_DONE")
+        return
     ttt = ""
     for i in range(len(res_msg)):
-        if res_msg[i] == "\n" or res_msg[i] == " ":
-            try:
-                ttt = res_msg[i+1:]
-            except:
-                ttt = ""
+        if res_msg[i] != "\n" and res_msg[i] != " ":
+            ttt = res_msg[i:]
+            break
+            
     full_msg.append(ttt)
     print(full_msg)
     # print(res_msg_list)

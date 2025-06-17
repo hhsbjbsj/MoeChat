@@ -156,6 +156,8 @@ def to_llm(msg: list, res_msg_list: list, full_msg: list):
             if match and emotion_list:
                 if match in emotion_list:
                     return match
+    # def add_msg(msg: str):
+
 
     data = req_data.copy()
     data["messages"] = msg
@@ -168,7 +170,7 @@ def to_llm(msg: list, res_msg_list: list, full_msg: list):
         return JSONResponse(status_code=400, content={"message": "无法链接到LLM服务器"})
     
     # 信息处理
-    biao_dian_2 = ["…", "~", "～", "。", "？", "！", "?", "!"]
+    # biao_dian_2 = ["…", "~", "～", "。", "？", "！", "?", "!"]
     biao_dian_3 = ["…", "~", "～", "。", "？", "！", "?", "!",  ",",  "，"]
 
     res_msg = ""
@@ -177,7 +179,7 @@ def to_llm(msg: list, res_msg_list: list, full_msg: list):
     j2 = True
     ref_audio = ""
     ref_text = ""
-    biao_tmp = biao_dian_3
+    # biao_tmp = biao_dian_3
     stat = True
     for line in response.iter_lines():
         if line:
@@ -202,43 +204,46 @@ def to_llm(msg: list, res_msg_list: list, full_msg: list):
             #     continue
             ress = ""
             for ii in range(len(tmp_msg)):
-                if tmp_msg[ii] == "(" or tmp_msg[ii] == "（" or tmp_msg[ii] == "[":
+                if tmp_msg[ii] in ["(", "（", "["]:
                     stat = False
-                    break
-                if tmp_msg[ii] == ")" or tmp_msg[ii] == "）" or tmp_msg[ii] == "]":
+                    continue
+                if tmp_msg[ii] in [")", "）", "]"]:
                     stat = True
                     continue
-                if tmp_msg[ii] in biao_tmp:
-                    # 提取文本中的情绪标签，并设置参考音频
-                    emotion = get_emotion(tmp_msg)
-                    if emotion:
-                        if emotion in emotion_list:
-                            ref_audio = emotion_list[emotion][0]
-                            ref_text = emotion_list[emotion][1]
-                    ress = tmp_msg[:ii+1]
-                    ress = jionlp.remove_html_tag(ress)
-                    ttt = ress
-                    if j2:
-                        for i in range(len(ress)):
-                            if ress[i] == "\n" or ress[i] == " ":
-                                try:
-                                    ttt = ress[i+1:]
-                                except:
-                                    ttt = ""
-                    # if not j2:
-                    #     if len(re.sub(r'[$(（[].*?[]）)]', '', ttt)) < 4:
-                    #         continue
-                    if ttt and stat:
-                        res_msg_list.append([ref_audio, ref_text, ttt])
-                    # print(f"[合成文本]{ress}")
-                    if j2:
-                        biao_tmp = biao_dian_2
-                        j2 = False
-                    try:
-                        tmp_msg = tmp_msg[ii+1:]
-                    except:
-                        tmp_msg = ""
-                    break
+                if tmp_msg[ii] not in biao_dian_3:
+                    continue
+                if (tmp_msg[ii] == "," or tmp_msg[ii] == "，") and not j2:
+                    continue
+
+                # 提取文本中的情绪标签，并设置参考音频
+                emotion = get_emotion(tmp_msg)
+                if emotion:
+                    if emotion in emotion_list:
+                        ref_audio = emotion_list[emotion][0]
+                        ref_text = emotion_list[emotion][1]
+                ress = tmp_msg[:ii+1]
+                ress = jionlp.remove_html_tag(ress)
+                ttt = ress
+                if j2:
+                    for i in range(len(ress)):
+                        if ress[i] == "\n" or ress[i] == " ":
+                            try:
+                                ttt = ress[i+1:]
+                            except:
+                                ttt = ""
+                # if not j2:
+                #     if len(re.sub(r'[$(（[].*?[]）)]', '', ttt)) < 4:
+                #         continue
+                if ttt and stat:
+                    res_msg_list.append([ref_audio, ref_text, ttt])
+                # print(f"[合成文本]{ress}")
+                if j2:
+                    j2 = False
+                try:
+                    tmp_msg = tmp_msg[ii+1:]
+                except:
+                    tmp_msg = ""
+                break
 
 
     if len(tmp_msg) > 0:
@@ -268,7 +273,7 @@ def to_llm(msg: list, res_msg_list: list, full_msg: list):
 
 def tts(datas: dict):
     global config_data
-    res = requests.post(config_data["GSV"]["api"], json=datas, timeout=5)
+    res = requests.post(config_data["GSV"]["api"], json=datas, timeout=10)
     if res.status_code == 200:
         return res.content
     else:
@@ -278,8 +283,15 @@ def tts(datas: dict):
 
 def clear_text(msg: str):
     msg = re.sub(r'[$(（[].*?[]）)]', '', msg)
-    msg = jionlp.remove_exception_char(msg)
-    return msg
+    msg = msg.replace(" ", "").replace("\n", "")
+    tmp_msg = ""
+    biao = ["…", "~", "～", "。", "？", "！", "?", "!",  ",",  "，"]
+    for i in range(len(msg)):
+        if msg[i] not in biao:
+          tmp_msg = msg[i:]
+          break
+    # msg = jionlp.remove_exception_char(msg)
+    return tmp_msg
 # TTS并写入队
 def to_tts(tts_data: list):
     global top_k

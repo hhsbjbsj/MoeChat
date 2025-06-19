@@ -33,8 +33,8 @@ Linux环境下首Token延迟基本能做到1.5s以内。Windows环境下延迟�
 - 脱离原有的GPT-SoVITS代码，改为API接口调用
 
 # 整合包使用说明
-稍后上传
-整合包不包含用于推理的GPT跟SoVITS模型，需要自行添加底模或者训练好的模型。
+[百度网盘](https://pan.baidu.com/s/1mf6hHJt8hVW3G2Yp2gC3Sw?pwd=2333)
+其他下载方式可进群获取：967981851
 
 ### Windows
 

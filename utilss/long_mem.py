@@ -74,7 +74,7 @@ class Memorys:
         # if os.path.exists(self.char_file_path) and os.path.exists(self.user_file_path):
         #     with open()
 
-    def find_range_indices(self, low, high) -> list|None:
+    def find_range_indices(self, low, high) -> list:
         start_idx = bisect_left(self.memorys_key, low)  # 找到第一个 >= low 的索引
         end_idx = bisect_right(self.memorys_key, high)  # 找到最后一个 <= high 的索引
         if end_idx == 0 or start_idx >= len(self.memorys_key):  # 如果没有找到匹配的元素

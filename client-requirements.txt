@@ -1,8 +1,9 @@
 sounddevice
 soundfile
-onnxruntime
-numpy==1.25.1
+onnxruntime-gpu
+numpy<2.0
 scipy
+noisereduce
 pygame
 requests
 flet[all]==0.27.6

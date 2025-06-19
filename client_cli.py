@@ -1,16 +1,20 @@
 import sounddevice as sd
 import soundfile as sf
-from pysilero import VADIterator
 import numpy as np
 from scipy.signal import resample  # 导入重采样函数
 import io
 from threading import Thread
 import time
-import subprocess
 import requests
 import base64
 import pygame
 import json
+import onnxruntime as ort
+import noisereduce as nr
+
+# 加载 ONNX 模型
+model_path = "silero_vad.onnx"
+session = ort.InferenceSession(model_path)
 
 asr_api = "http://192.168.1.172:8001/api/asr"
 chat_api = "http://192.168.1.172:8001/api/chat"
@@ -126,52 +130,72 @@ def gen_audio(current_speech):
         audio_bytes = buffer.read()  # 完整的 WAV bytes
     to_asr(audio_bytes, t)
 
-def main():
-    global status
-    # 初始化 VAD 迭代器，指定采样率为 16000Hz
-    vad_iterator = VADIterator(speech_pad_ms=100)
+def check_speaker(indata):
+    # 转换数据格式
+    # audio_data = indata[:, 0]  # 只取单声道
+    audio_data = indata
+    audio_data = np.expand_dims(audio_data.astype(np.float32), axis=0)  # 调整维度
+    state = np.zeros((2, 1, 128), dtype=np.float32)
+    sr = np.array(16000, dtype=np.int64)
+    # 运行模型
+    ort_inputs = {"input": audio_data, "state": state, "sr": sr}
+    # 进行 VAD 预测
+    vad_prob = session.run(None, ort_inputs)[0]
+    
+    # 判断是否为语音
+    if vad_prob > 0.7:
+        return True
+    else:
+        return False
 
+def main():
     # 查询音频设备
     devices = sd.query_devices()
     if len(devices) == 0:
-        print("No microphone devices found")
-    subprocess.run('clear', shell=True)
+        print("没有检测到麦克风")
     print(devices)
-    default_input_device_idx = sd.default.device[0]
-    print(f'Use default device: {devices[default_input_device_idx]["name"]}')
+    # default_input_device_idx = sd.default.device[0]
+    # print(f'Use default device: {devices[default_input_device_idx]["name"]}')
     device_id = int(input("输入麦克风序号: "))
     # 计算每次读取的样本数（保持 48000Hz 的输入）
-    samples_per_read = int(0.1 * 48000)  # 48000Hz * 0.1s = 4800 samples
+    sr = 48000
+    samples_per_read = int(0.03 * sr)  # 48000Hz * 0.1s = 4800 samples
+    num_points = int(samples_per_read * (16000 / sr))
 
     # 储存识别到的音频片段
-    current_speech = []
     print("启动成功")
     print("Me:")
-    with sd.InputStream(channels=1, dtype="float32", samplerate=48000, device=device_id) as s:
+    ii = 0
+    state = False
+    state2 = True
+    # 储存识别到的音频片段
+    current_speech = []
+    with sd.InputStream(channels=1, dtype="float32", samplerate=sr, device=device_id) as s:
         while True:
             # 读取音频数据
             samples, _ = s.read(samples_per_read)
-
-            # 转换为单声道并重采样到 16000Hz
-            samples_mono = samples[:, 0].astype(np.float32)  # 确保为 float32
-            resampled = resample(samples_mono, 1600)         # 4800 → 1600 样本
+            samples = nr.reduce_noise(y=samples[:,0], sr=sr)
+            resampled = resample(samples, num_points)         # 4800 → 1600 样本
             resampled = resampled.astype(np.float32)         # 保持数据类型一致
-
-            # 将重采样后的数据传递给 VAD 处理
-            for speech_dict, speech_samples in vad_iterator(resampled):
-                if "start" in speech_dict:
+            res = check_speaker(resampled)
+            if res:
+                ii = 0
+                if state2:
+                    print("检测到语音")
+                    state2 = False
+                state = True
+            if state and not res:
+                ii += 1
+                if ii > 14:
+                    print("说话结束")
+                    tt = Thread(target=gen_audio, args=(current_speech.copy(), ))
+                    tt.start()
                     current_speech = []
-                    pass
-                if status:
-                    current_speech.append(speech_samples)
-                else:
-                    continue
-                is_last = "end" in speech_dict
-                if is_last:
-                    t = Thread(target=gen_audio, args=(current_speech.copy(), ))
-                    t.daemon = True
-                    t.start()
-                    current_speech = []  # 清空当前段落
+                    state = False
+                    state2 = True
+            if state:
+                current_speech.append(resampled)
+
 
 if __name__ == "__main__":
     main()

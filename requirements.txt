@@ -2,12 +2,8 @@ torch
 torchaudio
 sounddevice
 soundfile
-pysilero
-numpy==1.25.1
+numpy<2.0
 scipy
-pygame
-requests
-flet[all]==0.27.6
 jionlp
 ruamel.yaml
 modelscope

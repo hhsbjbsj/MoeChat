@@ -441,11 +441,17 @@ if __name__ == "__main__":
         params = {
             "weights_path": t2s_weights
         }
-        requests.get(str(config_data["GSV"]["api"]).replace("/tts", "/set_gpt_weights"), params=params)
+        try:
+            requests.get(str(config_data["GSV"]["api"]).replace("/tts", "/set_gpt_weights"), params=params)
+        except:
+            print(f"设置GPT_weights失败")
     if vits_weights:
         print(f"设置SoVITS...")
         params = {
             "weights_path": vits_weights
         }
-        requests.get(str(config_data["GSV"]["api"]).replace("/tts", "/set_sovits_weights"), params=params)
+        try:
+            requests.get(str(config_data["GSV"]["api"]).replace("/tts", "/set_sovits_weights"), params=params)
+        except:
+            print(f"设置SoVITS失败")
     uvicorn.run(app, host="0.0.0.0", port=8001)

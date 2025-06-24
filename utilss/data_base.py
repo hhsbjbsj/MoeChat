@@ -4,8 +4,8 @@ import hashlib
 import pickle
 import numpy as np
 import faiss
-import time
 from utilss import embedding
+from utilss import config as CConfig
 
 os.environ["KMP_DUPLICATE_LIB_OK"]= "TRUE"
 
@@ -22,13 +22,20 @@ def sum_md5(file_path: str):
     return md5_value
 
 class DataBase:
-    def __init__(self, char: str, thresholds: float, top_k: int): 
+    def update_config(self):
+        self.thresholds = float(CConfig.config["Agent"]["books_thresholds"])
+        self.top_k = int(CConfig.config["Agent"]["scan_depth"])
+        char = CConfig.config["Agent"]["char"]
+        self.path = f"./data/agents/{char}/data_base"
+
+    def __init__(self): 
+        self.update_config()
         # self.vects = np.array([])
         self.databases = []
-        self.thresholds = thresholds
-        self.top_k = top_k
+        # self.thresholds = thresholds
+        # self.top_k = top_k
 
-        self.path = f"./data/agents/{char}/data_base"
+        # self.path = f"./data/agents/{char}/data_base"
         os.makedirs(self.path+"/tmp/labels", exist_ok=True)
 
         base_list = {}
@@ -109,13 +116,3 @@ class DataBase:
                 if D[index][i2] >= self.thresholds:
                     msg += self.databases[I[index][i2]] + "\n\n"
         return msg
-
-if __name__ == "__main__":
-    db = DataBase("default", 0.4, 2)
-    t = time.time()
-    res = db.search(["计算机是什么？", "你能扮演一个傲娇的女生跟咱对话吗？"])
-    print(time.time() - t)
-    t = time.time()
-    res = db.search(["计算机是什么？", "你能扮演一个傲娇的女生跟咱对话吗？"])
-    print(time.time() - t)
-    print(res)

@@ -10,13 +10,20 @@ import pickle
 import requests
 import jionlp
 from bisect import bisect_left, bisect_right
+from utilss import config as CConfig
 
 class Memorys:
-    def __init__(self, config: dict):
-        self.char = config["char"]
-        self.user = config["user"]
-        self.thresholds = config["thresholds"]
-        self.is_check_memorys = config["is_check_memorys"]
+    def update_config(self):
+        self.char = CConfig.config["Agent"]["char"]
+        self.user = CConfig.config["Agent"]["user"]
+        self.thresholds = CConfig.config["Agent"]["mem_thresholds"]
+        self.is_check_memorys = CConfig.config["Agent"]["is_check_memorys"]
+    def __init__(self):
+        # self.char = config["char"]
+        # self.user = config["user"]
+        # self.thresholds = config["thresholds"]
+        # self.is_check_memorys = config["is_check_memorys"]
+        self.update_config()
 
         self.memorys_key = []       # 记录所有记忆的key，秒级整形时间戳。
         self.memorys_data = {}      # 记录所有记忆的文本数据。
@@ -42,7 +49,7 @@ class Memorys:
                     with open(file_path, "r", encoding="utf-8") as f:
                         data = yaml.safe_load(f)
                         for key in data:
-                            self.memorys_data[key] = data[key]["msg"]
+                            self.memorys_data[key] = str(data[key]["msg"]).replace("{{user}}", self.user).replace("{{char}}", self.char)
                             tag.append(data[key]["text_tag"])
                             m_list = data[key]["msg"].split("\n")
                             self.memorys_key.append(key)
@@ -196,9 +203,11 @@ class Memorys:
         t_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(t_n))
         m1 = data[-2]["content"]
         m2 = data[-1]["content"]
+        c1 = "{{user}}"
+        c2 = "{{char}}"
         m_data = {
             "t_n": t_n,
             "text_tag": res_tag,
-            "msg": f"时间：{t_str}\n{self.user}：{m1}\n{self.char}：{m2}"
+            "msg": f"时间：{t_str}\n{c1}：{m1}\n{c2}：{m2}"
         }
         self.add_memory(m_data)  

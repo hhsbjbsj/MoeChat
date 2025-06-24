@@ -1,5 +1,6 @@
 # import 
 from utilss import embedding
+from utilss import config as CConfig
 import yaml
 import time
 import faiss
@@ -9,11 +10,18 @@ import shortuuid
 os.environ["KMP_DUPLICATE_LIB_OK"]= "TRUE"
 
 class Core_Mem:
-    def __init__(self, config: dict):
-        self.char = config["char"]
-        self.user = config["user"]
+    def update_config(self):
+        self.char = CConfig.config["Agent"]["char"]
+        self.user = CConfig.config["Agent"]["user"]
         self.thresholds = 0.5
         self.file_path = f"./data/agents/{self.char}/core_mem.yml"
+        
+    def __init__(self):
+        # self.char = config["char"]
+        # self.user = config["user"]
+        # self.thresholds = 0.5
+        # self.file_path = f"./data/agents/{self.char}/core_mem.yml"
+        self.update_config()
         self.msgs = []
         self.mems = []
         self.uuid = []
@@ -32,7 +40,7 @@ class Core_Mem:
             uuid = shortuuid.ShortUUID().random(length=10)
             while  uuid in self.uuid:
                 uuid = shortuuid.ShortUUID().random(length=10)
-            text = {uuid: {"time": t_n, "text": "这是一条没用的信息。"}}
+            text = {uuid: {"time": t_n, "text": f"第一次相遇"}}
             with open(self.file_path, "a", encoding="utf-8") as f:
                 yaml.safe_dump(text, f, allow_unicode=True)
             with open(self.file_path, "r", encoding="utf-8") as f:

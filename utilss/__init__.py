@@ -5,3 +5,4 @@ from . import long_mem
 from . import data_base
 from . import prompt
 from . import core_mem
+from . import config

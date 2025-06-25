@@ -9,12 +9,11 @@ LLM:
   key: ""
   model: ""
   extra_config:               # 大模型API额外参数，如：temperature: 0.7，温度参数
-    # 豆包1.6大模型用参数
-    temperature: 1
-    top_p: 0.7
-    max_tokens: 16384
-    thinking: 
-      type: disabled
+    # 豆包1.5pro大模型用参数
+  stream_options: 
+      include_usage: true
+    # thinking: 
+    #   type: disabled
 GSV:
   api: ""
   text_lang: zh
@@ -47,6 +46,9 @@ Agent:
   books_thresholds: 0.5       # 知识库检索阈值。
   scan_depth: 4               # 知识库搜索深度，返回知识的数量，但相似度低于检索阈值的知识不会被返回，所以返回结果数量也可能小于设定的数值。
   
+  # 上下文长度，决定系统会保存多少条上下文，填入0则保存所有上下文。
+  context_length: 0
+
   # 下面提示词都可以用{{user}}、{{char}}占位符来代表用户名和角色名。
   
   # 角色的基本设定，会组合到角色设定提示词中，建议不要添加多余的信息，不填则不会添加到提示词。
@@ -66,3 +68,6 @@ Agent:
   prompt: |-
     使用口语的文字风格进行对话，不要太啰嗦。
     /no_think
+
+  # 开场白，数组形式。用于创建开场内容，填入用户与AI的对话内容，只能填入用户和Ai的对话内容，开场白会直接被插入到上下文的开头。
+  start_with: 

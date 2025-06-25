@@ -10,7 +10,7 @@ import jionlp
 import ast
 # from ruamel.yaml import YAML
 # from ruamel.yaml.scalarstring import PreservedScalarString
-import yaml
+import re
 import json
 
 class Agent:
@@ -90,10 +90,26 @@ class Agent:
         # 上下文缓存
         self.msg_data_tmp = []
         try:
-            with open(f"./data/agents/{self.char}/history.yaml", "r", encoding="utf-8") as f:
-                self.msg_data = yaml.safe_load(f)["messages"]
+            with open(f"./data/agents/{self.char}/history.txt", "r", encoding="utf-8") as f:
+                msg_list = f.readlines()
+                for m in msg_list:
+                    t = m.replace("\n", "").replace(" ", "")
+                    if not t:
+                        continue
+                    try:
+                        role = re.search(r"【(.*?)】：", m).group(1)
+                        content = re.sub(r'【[^)]*】：', "",  m, 1)
+                        self.msg_data.append({role: content})
+                    except:
+                        continue
         except:
             pass
+        if CConfig.config["Agent"]["start_with"]:
+            for i in range(len(CConfig.config["Agent"]["start_with"])):
+                role = "assistant"
+                if i % 2 == 0:
+                    role = "user"
+                self.msg_data.append({"role": role, "content": CConfig.config["Agent"]["start_with"][i]})
 
         # 载入提示词
         # self.prompt = []
@@ -185,7 +201,7 @@ class Agent:
         ttt = int(time.time())
         self.tt = ttt
         t_n = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ttt))
-        self.prompt[0] = {"role": "system", "content": f"当前现实世界时间：{t_n}"}
+        # self.prompt[0] = {"role": "system", "content": f"当前现实世界时间：{t_n}"}
         # self.tmp_mem = f"时间：{t_n}\n{self.user}：{msg.strip()}\n"
         t_list = []
         data_base = []
@@ -220,7 +236,6 @@ class Agent:
             tt.join()
         
         # 合并上下文、世界书、记忆信息
-        self.msg_data_tmp = []
         if self.is_data_base and data_base:
             # self.msg_data.append({"role": "system", "content": self.data_base_prompt.replace("{{data_base}}", data_base[0]).replace("{{user}}", self.user).replace("{{char}}", self.char)})
             self.msg_data_tmp.append({"role": "system", "content": self.data_base_prompt.replace("{{data_base}}", data_base[0]).replace("{{user}}", self.user).replace("{{char}}", self.char)})
@@ -230,7 +245,7 @@ class Agent:
         if self.is_long_mem and mem_msg:
             # self.msg_data.append({"role": "system", "content": self.long_mem_prompt.replace("{{memories}}", mem_msg[0]).replace("{{user}}", self.user).replace("{{char}}", self.char)})
             self.msg_data_tmp.append({"role": "system", "content": self.long_mem_prompt.replace("{{memories}}", mem_msg[0]).replace("{{user}}", self.user).replace("{{char}}", self.char)})
-        # self.msg_data.append({"role": "system", "content": f"当前现实世界时间：{t_n}"})
+        self.msg_data_tmp.append({"role": "system", "content": f"当前现实世界时间：{t_n}；一定要基于现实世界时间做出适宜的回复。"})
         # 合并上下文、世界书、记忆信息
         self.msg_data_tmp.append(
             {
@@ -264,9 +279,16 @@ class Agent:
         ttt2.start()
 
         self.msg_data += self.msg_data_tmp
-        self.msg_data = self.msg_data[-60:]
-        write_data = {
-            "messages": self.msg_data[-60:]
-        }
-        with open(f"./data/agents/{self.char}/history.yaml", "w", encoding="utf-8") as f:
-            yaml.safe_dump(write_data, f, allow_unicode=True)
+        if CConfig.config["Agent"]["context_length"]:
+            self.msg_data = self.msg_data[-CConfig.config["Agent"]["context_length"]:]
+        # write_data = {
+        #     "messages": self.msg_data[-60:]
+        # }
+
+        with open(f"./data/agents/{self.char}/history.txt", "a", encoding="utf-8") as f:
+            for mm in self.msg_data_tmp:
+                role = mm["role"]
+                content = mm["content"]
+                f.write(f"【{role}】：{content}\n")
+            f.write("\n")
+        self.msg_data_tmp = []

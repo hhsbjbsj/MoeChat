@@ -168,7 +168,8 @@ def to_llm(msg: list, res_msg_list: list, full_msg: list):
         "model": CConfig.config["LLM"]["model"] ,
         "stream": True
     }
-    data.update(CConfig.config["LLM"]["extra_config"])
+    if CConfig.config["LLM"]["extra_config"]:
+        data.update(CConfig.config["LLM"]["extra_config"])
     data["messages"] = msg
 
     t_t = time.time()

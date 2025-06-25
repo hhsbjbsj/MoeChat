@@ -181,7 +181,8 @@ def to_llm(msg: list, res_msg_list: list, full_msg: list):
     
     # 信息处理
     # biao_dian_2 = ["…", "~", "～", "。", "？", "！", "?", "!"]
-    biao_dian_3 = ["…", "~", "～", "。", "？", "！", "?", "!",  ",",  "，"]
+    biao_dian_3 = ["…", "~", "～", "。", "？", "！", "?", "!", ",", "，"]
+    biao_dian_4 = ["…", "~", "～",  ",", "，"]
 
     res_msg = ""
     tmp_msg = ""
@@ -190,7 +191,7 @@ def to_llm(msg: list, res_msg_list: list, full_msg: list):
     ref_audio = ""
     ref_text = ""
     # biao_tmp = biao_dian_3
-    stat = True
+    stat = 0
     for line in response.iter_lines():
         if line:
             try:
@@ -216,14 +217,16 @@ def to_llm(msg: list, res_msg_list: list, full_msg: list):
             ress = ""
             for ii in range(len(tmp_msg)):
                 if tmp_msg[ii] in ["(", "（", "["]:
-                    stat = False
+                    stat += 1
                     continue
                 if tmp_msg[ii] in [")", "）", "]"]:
-                    stat = True
+                    stat -= 1
+                    continue
+                if stat != 0:
                     continue
                 if tmp_msg[ii] not in biao_dian_3:
                     continue
-                if (tmp_msg[ii] == "," or tmp_msg[ii] == "，") and not j2:
+                if (tmp_msg[ii] in biao_dian_4) and not j2 and len(re.sub(r'[$(（[].*?[]）)]', '', tmp_msg[:ii+1])) <= 10:
                     continue
 
                 # 提取文本中的情绪标签，并设置参考音频
@@ -246,7 +249,7 @@ def to_llm(msg: list, res_msg_list: list, full_msg: list):
                 # if not j2:
                 #     if len(re.sub(r'[$(（[].*?[]）)]', '', ttt)) < 4:
                 #         continue
-                if ttt and stat:
+                if ttt:
                     res_msg_list.append([ref_audio, ref_text, ttt])
                 # print(f"[合成文本]{ress}")
                 if j2:

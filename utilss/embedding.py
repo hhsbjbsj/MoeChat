@@ -30,7 +30,7 @@ def load_model():
 try:
     embedding_model = load_model()
 except:
-    print(f"[错误]embedding模型为安装，开始安装embedding模型...")
+    print(f"[错误]embedding模型未安装，开始安装embedding模型...")
     model_id = "iic/nlp_gte_sentence-embedding_chinese-base"
     local_dir = "./utilss/models/nlp_gte_sentence-embedding_chinese-base"
     snapshot_download(model_id = model_id, local_dir=local_dir)

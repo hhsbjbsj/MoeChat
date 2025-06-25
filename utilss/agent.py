@@ -12,6 +12,7 @@ import ast
 # from ruamel.yaml.scalarstring import PreservedScalarString
 import re
 import json
+import yaml
 
 class Agent:
     def update_config(self):
@@ -90,18 +91,10 @@ class Agent:
         # 上下文缓存
         self.msg_data_tmp = []
         try:
-            with open(f"./data/agents/{self.char}/history.txt", "r", encoding="utf-8") as f:
-                msg_list = f.readlines()
-                for m in msg_list:
-                    t = m.replace("\n", "").replace(" ", "")
-                    if not t:
-                        continue
-                    try:
-                        role = re.search(r"【(.*?)】：", m).group(1)
-                        content = re.sub(r'【[^)]*】：', "",  m, 1)
-                        self.msg_data.append({role: content})
-                    except:
-                        continue
+            with open(f"./data/agents/{self.char}/history.yaml", "r", encoding="utf-8") as f:
+                msg_list = yaml.safe_load(f)
+                self.msg_data += msg_list
+
         except:
             pass
         if CConfig.config["Agent"]["start_with"]:
@@ -109,7 +102,7 @@ class Agent:
                 role = "assistant"
                 if i % 2 == 0:
                     role = "user"
-                self.msg_data.append({"role": role, "content": CConfig.config["Agent"]["start_with"][i]})
+                self.msg_data_tmp.append({"role": role, "content": CConfig.config["Agent"]["start_with"][i]})
 
         # 载入提示词
         # self.prompt = []
@@ -285,10 +278,11 @@ class Agent:
         #     "messages": self.msg_data[-60:]
         # }
 
-        with open(f"./data/agents/{self.char}/history.txt", "a", encoding="utf-8") as f:
-            for mm in self.msg_data_tmp:
-                role = mm["role"]
-                content = mm["content"]
-                f.write(f"【{role}】：{content}\n")
-            f.write("\n")
+        with open(f"./data/agents/{self.char}/history.yaml", "a", encoding="utf-8") as f:
+            yaml.safe_dump(self.msg_data_tmp, f, allow_unicode=True)
+            # for mm in self.msg_data_tmp:
+            #     role = mm["role"]
+            #     content = mm["content"]
+            #     f.write(f"【{role}】：{content}\n")
+            # f.write("\n")
         self.msg_data_tmp = []

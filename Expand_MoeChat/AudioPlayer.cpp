@@ -1,5 +1,5 @@
 #include "AudioPlayer.h"
-
+ 
 AudioPlayer::AudioPlayer(QObject* parent) : QObject(parent) {
     m_audioOutput = new QAudioOutput(this);
     m_player = new QMediaPlayer(this);

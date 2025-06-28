@@ -32,9 +32,6 @@ Linux环境下首Token延迟基本能做到1.5s以内。Windows环境下延迟�
 - 上述功均需要启用角色模板功能
 - 脱离原有的GPT-SoVITS代码，改为API接口调用
 
-# 整合包使用说明
-[百度网盘](https://pan.baidu.com/s/1mf6hHJt8hVW3G2Yp2gC3Sw?pwd=2333)
-其他下载方式可进群获取：967981851
 
 ### Windows
 
